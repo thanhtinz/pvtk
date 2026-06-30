@@ -55,12 +55,58 @@ public final class GameClient implements ConnectionListener {
         connection.send(new MoveRequest(x, y, dir).toPacket());
     }
 
+    public void jumpMap(int mapId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.JumpMap(mapId).toPacket());
+    }
+
     public void say(String text) {
         say(vn.pvtk.protocol.message.Messages.Channel.WORLD, null, text);
     }
 
     public void say(vn.pvtk.protocol.message.Messages.Channel channel, String target, String text) {
         connection.send(new ChatRequest(channel, target, text).toPacket());
+    }
+
+    // --- Inventory ---
+    public void requestBag() {
+        connection.send(new vn.pvtk.protocol.message.Messages.BagAction(
+                vn.pvtk.protocol.message.Messages.BagAction.LIST, 0, 0).toPacket());
+    }
+
+    public void equip(int bagSlot) {
+        connection.send(new vn.pvtk.protocol.message.Messages.BagAction(
+                vn.pvtk.protocol.message.Messages.BagAction.EQUIP, bagSlot, 0).toPacket());
+    }
+
+    public void unequip(int gearType) {
+        connection.send(new vn.pvtk.protocol.message.Messages.BagAction(
+                vn.pvtk.protocol.message.Messages.BagAction.UNEQUIP, gearType, 0).toPacket());
+    }
+
+    // --- Combat ---
+    public void attack(int targetId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.AttackRequest(targetId, 0).toPacket());
+    }
+
+    // --- Country / guild ---
+    public void createCountry(String name) {
+        connection.send(new vn.pvtk.protocol.message.Messages.CountryCreate(name).toPacket());
+    }
+
+    public void listCountries() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.COUNTRY_LIST).putShort(0));
+    }
+
+    public void joinCountry(int countryId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.CountryJoin(countryId).toPacket());
+    }
+
+    public void leaveCountry() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.COUNTRY_LEAVE));
+    }
+
+    public void countryInfo() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.COUNTRY_INFO));
     }
 
     public void disconnect() {
@@ -85,6 +131,13 @@ public final class GameClient implements ConnectionListener {
             case Opcodes.AUTO_MOVE -> handleMove(p);
             case Opcodes.GET_SPRITE -> handleSpawnOrDespawn(p);
             case Opcodes.CHAT -> listener.onChat(vn.pvtk.protocol.message.Messages.ChatBroadcast.from(p));
+            case Opcodes.BAG -> handleBag(p);
+            case Opcodes.COMBAT_EVENT -> handleCombat(p);
+            case Opcodes.COUNTRY_LIST -> listener.onCountryList(
+                    vn.pvtk.protocol.message.Messages.CountryList.from(p));
+            case Opcodes.COUNTRY_CREATE, Opcodes.COUNTRY_INFO,
+                 Opcodes.COUNTRY_JOIN, Opcodes.COUNTRY_LEAVE ->
+                    listener.onCountryResult(op, vn.pvtk.protocol.message.Messages.CountryActionResult.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }
@@ -132,5 +185,20 @@ public final class GameClient implements ConnectionListener {
             state.remove(d.entityId());
         }
         listener.onWorldChanged();
+    }
+
+    private void handleBag(Packet p) {
+        var snap = vn.pvtk.protocol.message.Messages.BagSnapshot.from(p);
+        state.inventory().apply(snap);
+        listener.onInventoryChanged();
+    }
+
+    private void handleCombat(Packet p) {
+        var ev = vn.pvtk.protocol.message.Messages.CombatEvent.from(p);
+        var target = state.get(ev.targetId());
+        if (target != null) {
+            target.hp = ev.targetHp();
+        }
+        listener.onCombat(ev);
     }
 }

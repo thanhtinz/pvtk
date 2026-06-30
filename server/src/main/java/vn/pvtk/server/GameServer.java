@@ -33,13 +33,14 @@ public final class GameServer {
     private final ServerConfig config;
     private final GameData gameData = new GameData(GameData.resolveAssetsRoot()).loadAll();
     private final SessionManager sessions = new SessionManager();
-    private final World world = new World(sessions);
+    private final World world = new World(sessions, gameData);
     private final GameContext context = new GameContext(world, sessions, gameData);
     private final PacketDispatcher dispatcher = new PacketDispatcher(context);
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
+    private java.util.concurrent.ScheduledExecutorService tickExecutor;
 
     public GameServer(ServerConfig config) {
         this.config = config;
@@ -68,6 +69,21 @@ public final class GameServer {
                 });
 
         serverChannel = b.bind(config.host(), config.port()).sync().channel();
+
+        // World tick: respawns monsters and drives periodic world logic.
+        tickExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "pvtk-world-tick");
+            t.setDaemon(true);
+            return t;
+        });
+        tickExecutor.scheduleAtFixedRate(() -> {
+            try {
+                world.tick(System.currentTimeMillis());
+            } catch (Exception e) {
+                log.warn("World tick error", e);
+            }
+        }, 1, 1, TimeUnit.SECONDS);
+
         log.info("PVTK game server listening on {}:{}", config.host(), config.port());
     }
 
@@ -80,6 +96,9 @@ public final class GameServer {
 
     public void stop() {
         log.info("Shutting down game server...");
+        if (tickExecutor != null) {
+            tickExecutor.shutdownNow();
+        }
         if (serverChannel != null) {
             serverChannel.close();
         }

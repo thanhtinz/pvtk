@@ -21,8 +21,11 @@ from the legacy client and re-implemented in clean Java 21.
 - ♻️ **Shared client core** — pure-JDK networking + game state reused by every
   platform.
 - 🎮 **libGDX game** — single rendering/input codebase → PC + Android + iOS.
-- ✅ **Verified multiplayer loop** — an integration test boots the real server
-  and multiple real clients and asserts login, spawn, movement and chat.
+- ⚔️ **Gameplay systems** — inventory & equipment (from `item.txt`), monster
+  combat with rewards/level-ups & respawn (from `monster.txt`), map travel, and
+  country/guild (create/join/leave + guild chat).
+- ✅ **Verified end-to-end** — integration tests boot the real server and real
+  clients and assert login, spawn, movement, chat, inventory, combat and guilds.
 
 ## Module layout
 

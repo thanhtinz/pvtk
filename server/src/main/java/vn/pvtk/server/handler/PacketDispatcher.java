@@ -26,6 +26,16 @@ public final class PacketDispatcher {
         register(Opcodes.AUTO_MOVE, new MovementHandler());
         register(Opcodes.CHAT, new ChatHandler());
         register(Opcodes.WORLD_DATA, new WorldDataHandler());
+        register(Opcodes.JUMP_MAP, new JumpMapHandler());
+        register(Opcodes.BAG, new InventoryHandler());
+        register(Opcodes.ATTACK, new CombatHandler());
+
+        CountryHandler country = new CountryHandler();
+        register(Opcodes.COUNTRY_CREATE, country);
+        register(Opcodes.COUNTRY_LIST, country);
+        register(Opcodes.COUNTRY_INFO, country);
+        register(Opcodes.COUNTRY_JOIN, country);
+        register(Opcodes.COUNTRY_LEAVE, country);
     }
 
     public void register(int opcode, PacketHandler handler) {

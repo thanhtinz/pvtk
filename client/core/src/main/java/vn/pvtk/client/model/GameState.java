@@ -14,6 +14,11 @@ public final class GameState {
 
     private volatile Entity self;
     private final Map<Integer, Entity> others = new ConcurrentHashMap<>();
+    private final InventoryView inventory = new InventoryView();
+
+    public InventoryView inventory() {
+        return inventory;
+    }
 
     public Entity self() {
         return self;

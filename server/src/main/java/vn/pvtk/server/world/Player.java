@@ -18,8 +18,13 @@ public final class Player {
     private volatile int hp;
     private volatile int maxHp;
     private volatile int level;
+    private volatile int exp;
+    private volatile int gold;
+    private volatile int countryId;
 
-    public Player(String name, int mapId, int x, int y) {
+    private final Inventory inventory;
+
+    public Player(String name, int mapId, int x, int y, Inventory inventory) {
         this.id = IDS.getAndIncrement();
         this.name = name;
         this.mapId = mapId;
@@ -29,6 +34,69 @@ public final class Player {
         this.maxHp = 1000;
         this.hp = 1000;
         this.level = 1;
+        this.gold = 100;
+        this.inventory = inventory;
+    }
+
+    public Inventory inventory() {
+        return inventory;
+    }
+
+    public int exp() {
+        return exp;
+    }
+
+    public int gold() {
+        return gold;
+    }
+
+    public void addGold(int amount) {
+        this.gold = Math.max(0, gold + amount);
+    }
+
+    public int countryId() {
+        return countryId;
+    }
+
+    public void countryId(int countryId) {
+        this.countryId = countryId;
+    }
+
+    /** Base attack plus equipment bonus. */
+    public int attackPower() {
+        return 10 + level * 2 + (inventory != null ? inventory.attackBonus() : 0);
+    }
+
+    public int defense() {
+        return level + (inventory != null ? inventory.defenseBonus() : 0);
+    }
+
+    public void damage(int amount) {
+        this.hp = Math.max(0, hp - Math.max(1, amount));
+    }
+
+    public boolean isDead() {
+        return hp <= 0;
+    }
+
+    public void revive() {
+        this.hp = maxHp;
+    }
+
+    /** Grants experience and handles simple level-ups. Returns true if leveled. */
+    public boolean addExp(int amount) {
+        this.exp += amount;
+        boolean leveled = false;
+        int need = level * 100;
+        while (exp >= need) {
+            exp -= need;
+            level++;
+            maxHp += 100;
+            hp = maxHp;
+            need = level * 100;
+            leveled = true;
+        }
+        return leveled;
     }
 
     public int id() {

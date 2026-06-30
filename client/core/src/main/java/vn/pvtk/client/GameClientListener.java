@@ -1,6 +1,9 @@
 package vn.pvtk.client;
 
 import vn.pvtk.protocol.message.Messages.ChatBroadcast;
+import vn.pvtk.protocol.message.Messages.CombatEvent;
+import vn.pvtk.protocol.message.Messages.CountryActionResult;
+import vn.pvtk.protocol.message.Messages.CountryList;
 
 /**
  * High-level game events surfaced to the UI layer. All callbacks fire on the
@@ -23,6 +26,19 @@ public interface GameClientListener {
     }
 
     default void onChat(ChatBroadcast chat) {
+    }
+
+    /** Inventory snapshot updated; re-read {@code state().inventory()}. */
+    default void onInventoryChanged() {
+    }
+
+    default void onCombat(CombatEvent event) {
+    }
+
+    default void onCountryResult(int opcode, CountryActionResult result) {
+    }
+
+    default void onCountryList(CountryList list) {
     }
 
     default void onDisconnected(String reason) {

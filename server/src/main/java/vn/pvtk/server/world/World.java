@@ -7,7 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import vn.pvtk.protocol.Packet;
+import vn.pvtk.protocol.message.Messages;
+import vn.pvtk.protocol.message.Messages.CombatEvent;
 import vn.pvtk.protocol.message.Messages.EntityState;
+import vn.pvtk.protocol.message.Messages.MoveUpdate;
+import vn.pvtk.server.data.GameData;
+import vn.pvtk.server.data.MonsterDef;
 import vn.pvtk.server.session.PlayerSession;
 import vn.pvtk.server.session.SessionManager;
 
@@ -20,20 +25,83 @@ public final class World {
 
     private static final Logger log = LoggerFactory.getLogger(World.class);
 
-    private final SessionManager sessions;
-    private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
+    /** How long a slain monster stays dead before respawning. */
+    private static final long RESPAWN_MS = 8_000L;
 
-    public World(SessionManager sessions) {
+    private final SessionManager sessions;
+    private final GameData data;
+    private final CountryRegistry countries = new CountryRegistry();
+    private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
+    // monsters indexed globally by id and per-map for AOI.
+    private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Monster>> monstersByMap = new ConcurrentHashMap<>();
+
+    public World(SessionManager sessions, GameData data) {
         this.sessions = sessions;
+        this.data = data;
         // A small set of starter maps. In a full build these load from data files
         // converted from the original client's `map/` resources.
         register(new MapInstance(1, "Tân Thủ Thôn", 64, 64, 32, 32));
         register(new MapInstance(2, "Lạc Dương Thành", 96, 96, 48, 48));
         register(new MapInstance(3, "Hoang Dã", 128, 128, 20, 20));
+        spawnInitialMonsters();
     }
 
     private void register(MapInstance map) {
         maps.put(map.mapId(), map);
+        monstersByMap.put(map.mapId(), new ArrayList<>());
+    }
+
+    public CountryRegistry countries() {
+        return countries;
+    }
+
+    public GameData data() {
+        return data;
+    }
+
+    // ------------------------------------------------------------------
+    // Monsters
+    // ------------------------------------------------------------------
+
+    private void spawnInitialMonsters() {
+        List<MonsterDef> defs = data.monsterList();
+        if (defs.isEmpty()) {
+            return;
+        }
+        // Populate the wilderness map (3) with a handful of monsters from the DB.
+        MapInstance wild = maps.get(3);
+        int count = Math.min(12, defs.size());
+        for (int i = 0; i < count; i++) {
+            MonsterDef def = defs.get(i % defs.size());
+            int x = 8 + (i * 7) % (wild.width() - 16);
+            int y = 8 + (i * 11) % (wild.height() - 16);
+            Monster m = new Monster(def, x, y);
+            monstersById.put(m.id(), m);
+            monstersByMap.get(wild.mapId()).add(m);
+        }
+        log.info("Spawned {} monsters into map {} [{}]", count, wild.mapId(), wild.name());
+    }
+
+    public Monster monster(int id) {
+        return monstersById.get(id);
+    }
+
+    private List<Monster> monstersOnMap(int mapId) {
+        return monstersByMap.getOrDefault(mapId, List.of());
+    }
+
+    /** Called periodically by the server tick to respawn dead monsters. */
+    public void tick(long nowMs) {
+        for (Map.Entry<Integer, List<Monster>> e : monstersByMap.entrySet()) {
+            MapInstance map = maps.get(e.getKey());
+            for (Monster m : e.getValue()) {
+                if (m.isDead() && nowMs - m.deadAtMs() >= RESPAWN_MS) {
+                    m.respawn();
+                    broadcastToMap(map, new Messages.Spawn(m.toState(map.mapId())).toPacket(), -1);
+                }
+            }
+        }
     }
 
     public MapInstance map(int mapId) {
@@ -81,7 +149,103 @@ public final class World {
                 list.add(s.player().toState());
             }
         }
+        for (Monster m : monstersOnMap(map.mapId())) {
+            if (!m.isDead()) {
+                list.add(m.toState(map.mapId()));
+            }
+        }
         return list;
+    }
+
+    // ------------------------------------------------------------------
+    // Combat
+    // ------------------------------------------------------------------
+
+    /**
+     * Resolves an attack from {@code attacker} on {@code targetId} (a monster or
+     * another player), applies authoritative damage, and broadcasts the result.
+     * This is a deliberately simple real-time model layered on the original's
+     * (turn-based) combat opcodes — see docs/ARCHITECTURE.md.
+     */
+    public void attack(PlayerSession session, int targetId, long nowMs) {
+        Player attacker = session.player();
+        MapInstance map = map(attacker.mapId());
+        int atk = attacker.attackPower();
+
+        Monster monster = monstersById.get(targetId);
+        if (monster != null && !monster.isDead()) {
+            int dmg = Math.max(1, atk - 2);
+            boolean killed = monster.damage(dmg, nowMs);
+            broadcastToMap(map, new CombatEvent(attacker.id(), targetId, dmg, monster.hp(), killed).toPacket(), -1);
+            if (killed) {
+                attacker.addGold(monster.def().rewardMoney());
+                boolean leveled = attacker.addExp(monster.def().rewardExp());
+                // Reward & possible level-up are reflected in the attacker's own state.
+                session.send(new Messages.Spawn(attacker.toState()).toPacket());
+                if (leveled) {
+                    log.info("{} reached level {}", attacker.name(), attacker.level());
+                }
+                broadcastToMap(map, new Messages.Despawn(targetId).toPacket(), -1);
+            }
+            return;
+        }
+
+        // PvP: target is another player on the same map.
+        PlayerSession targetSession = sessions.byPlayerId(targetId);
+        if (targetSession != null && targetSession.player() != null) {
+            Player target = targetSession.player();
+            if (target.mapId() != attacker.mapId()) {
+                return;
+            }
+            int dmg = Math.max(1, atk - target.defense());
+            target.damage(dmg);
+            boolean killed = target.isDead();
+            broadcastToMap(map, new CombatEvent(attacker.id(), targetId, dmg, target.hp(), killed).toPacket(), -1);
+            if (killed) {
+                target.revive();
+                // Respawn the defeated player at the map's spawn point.
+                target.moveTo(map.spawnX(), map.spawnY(), 0);
+                broadcastToMap(map, new MoveUpdate(target.id(), target.x(), target.y(), 0).toPacket(), -1);
+                targetSession.send(new Messages.Spawn(target.toState()).toPacket());
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Country broadcast
+    // ------------------------------------------------------------------
+
+    /** Sends a packet to every online member of {@code countryId}. */
+    public void broadcastToCountry(int countryId, Packet packet) {
+        Country c = countries.get(countryId);
+        if (c == null) {
+            return;
+        }
+        for (int pid : c.members()) {
+            sessions.sendTo(pid, packet);
+        }
+    }
+
+    /** Moves a player to another map: despawn on the old, spawn on the new, fresh snapshot. */
+    public void changeMap(PlayerSession session, int targetMapId) {
+        Player p = session.player();
+        MapInstance old = map(p.mapId());
+        MapInstance dest = map(targetMapId);
+        if (dest.mapId() == old.mapId()) {
+            return;
+        }
+        old.removePlayer(p.id());
+        broadcastToMap(old, new Messages.Despawn(p.id()).toPacket(), p.id());
+
+        p.mapId(dest.mapId());
+        p.moveTo(dest.spawnX(), dest.spawnY(), 0);
+        dest.addPlayer(p.id());
+        broadcastToMap(dest, new Messages.Spawn(p.toState()).toPacket(), p.id());
+
+        // Update the traveller's own position and give it the new map snapshot.
+        session.send(new Messages.Spawn(p.toState()).toPacket());
+        session.send(new Messages.WorldSnapshot(dest.mapId(), visibleEntities(p)).toPacket());
+        log.info("Player {} jumped to map {} [{}]", p.name(), dest.mapId(), dest.name());
     }
 
     /** Applies an authoritative move and broadcasts it to everyone on the map. */

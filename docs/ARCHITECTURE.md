@@ -72,13 +72,32 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
 
 ## What is implemented vs. roadmap
 
-**Implemented & tested end-to-end:** connect, login, world snapshot, spawn /
-despawn broadcast, authoritative movement, multi-channel chat, keep-alive.
+**Implemented & tested end-to-end:**
+* connect, login, world snapshot, spawn / despawn broadcast, authoritative
+  movement, multi-channel chat, keep-alive;
+* **map travel** (`JUMP_MAP`) between zones;
+* **inventory** — bag + equipment loaded from the real `item.txt`; equip/unequip
+  changes derived attack/defence (`InventoryHandler`);
+* **combat** — monsters spawned from `monster.txt` into the wilderness map, a
+  real-time attack model, damage from gear-adjusted stats, death → gold/exp
+  reward → level-up, and timed respawn via the world tick (`CombatHandler`,
+  `World.attack/tick`); PvP works the same way;
+* **country / guild** — create / list / join / leave / info, country-scoped chat
+  (`CountryHandler`, `CountryRegistry`).
 
-**Roadmap (opcodes already catalogued in `OPCODES.md`):** inventory & shops,
-combat/battle, teams, quests & escorts, country (guild) & war, mail, mercenaries
-& pets, achievements, marketplace. Each maps to a documented opcode and slots
-into the dispatcher as a new `PacketHandler`.
+Each system is covered by an integration test in `client/core` that drives the
+real server with real clients.
+
+**Roadmap (opcodes already catalogued in `OPCODES.md`):** player shops &
+marketplace, turn-based skill battles, teams/party, quests & escorts, country
+war, mail, mercenaries & pets, achievements. Each maps to a documented opcode
+and slots into the dispatcher as a new `PacketHandler`.
+
+**Combat is a deliberate simplification.** The original game used turn-based
+battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the
+original *server* logic was never present in the client jar, this rewrite
+implements a clean real-time model over the same opcode space rather than
+reproducing the exact turn engine.
 
 ## Game assets
 

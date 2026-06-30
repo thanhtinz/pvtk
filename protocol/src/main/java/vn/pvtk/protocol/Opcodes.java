@@ -63,6 +63,16 @@ public final class Opcodes {
     public static final int CHAT                = 13509; // chat message
     public static final int RELATION_LIST       = 13529; // friends list
 
+    // --- Subsystems implemented by this rewrite (request/response share the opcode) ---
+    public static final int BAG                 = 12001; // inventory: list / equip / move
+    public static final int ATTACK              = 12505; // combat: attack request (client->server)
+    public static final int COMBAT_EVENT        = 12506; // combat: damage/death event (server->client)
+    public static final int COUNTRY_CREATE      = 15001; // guild/nation: create
+    public static final int COUNTRY_INFO        = 15002; // guild/nation: info
+    public static final int COUNTRY_LIST        = 15004; // guild/nation: list
+    public static final int COUNTRY_JOIN        = 15011; // guild/nation: apply/join
+    public static final int COUNTRY_LEAVE       = 15015; // guild/nation: leave
+
     static {
         register(5000, "CHECK_EDITION_MSG");
         register(5001, "MODIFY_PLAYER_NAME");

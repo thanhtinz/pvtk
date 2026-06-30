@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -29,22 +32,33 @@ public final class GameData {
     private final Path assetsRoot;
     private final Map<String, DataTable> tables = new HashMap<>();
 
+    // Typed registries built from the raw tables.
+    private final Map<Integer, ItemDef> items = new LinkedHashMap<>();
+    private final Map<Integer, MonsterDef> monsters = new LinkedHashMap<>();
+
     public GameData(Path assetsRoot) {
         this.assetsRoot = assetsRoot;
     }
 
-    /** Resolves the assets directory from {@code PVTK_ASSETS} or sensible defaults. */
+    /**
+     * Resolves the assets directory from {@code PVTK_ASSETS}, otherwise walks up
+     * from the working directory looking for an {@code assets/} folder that
+     * contains the content tables. This keeps it working no matter how deeply a
+     * module (e.g. {@code client/core}) is nested.
+     */
     public static Path resolveAssetsRoot() {
         String env = System.getenv("PVTK_ASSETS");
         if (env != null && !env.isBlank()) {
             return Paths.get(env);
         }
-        // Try ./assets then ../assets (when launched from the server module dir).
-        Path here = Paths.get("assets");
-        if (Files.isDirectory(here)) {
-            return here;
+        Path dir = Paths.get("").toAbsolutePath();
+        for (int up = 0; up < 6 && dir != null; up++, dir = dir.getParent()) {
+            Path candidate = dir.resolve("assets");
+            if (Files.isRegularFile(candidate.resolve("item.txt"))) {
+                return candidate;
+            }
         }
-        return Paths.get("..", "assets");
+        return Paths.get("assets"); // fall back; loadAll() will warn if absent
     }
 
     /** Loads the core content tables. Missing files are logged and skipped. */
@@ -58,10 +72,48 @@ public final class GameData {
                 "skill", "skill_shop", "shop", "player", "player_skill", "job_setting")) {
             load(name);
         }
+        buildRegistries();
         log.info("Loaded content DB from {}: {} items, {} monsters, {} skills, {} shops",
                 assetsRoot.toAbsolutePath(),
-                count("item"), count("monster"), count("skill"), count("shop"));
+                items.size(), monsters.size(), count("skill"), count("shop"));
         return this;
+    }
+
+    private void buildRegistries() {
+        DataTable itemTable = tables.get("item");
+        if (itemTable != null) {
+            for (Map<String, String> row : itemTable.rows()) {
+                ItemDef def = ItemDef.from(row);
+                if (def.id() > 0) {
+                    items.put(def.id(), def);
+                }
+            }
+        }
+        DataTable monsterTable = tables.get("monster");
+        if (monsterTable != null) {
+            for (Map<String, String> row : monsterTable.rows()) {
+                MonsterDef def = MonsterDef.from(row);
+                if (def.id() > 0) {
+                    monsters.put(def.id(), def);
+                }
+            }
+        }
+    }
+
+    public ItemDef item(int id) {
+        return items.get(id);
+    }
+
+    public Map<Integer, ItemDef> items() {
+        return Collections.unmodifiableMap(items);
+    }
+
+    public MonsterDef monster(int id) {
+        return monsters.get(id);
+    }
+
+    public List<MonsterDef> monsterList() {
+        return new ArrayList<>(monsters.values());
     }
 
     private void load(String name) {

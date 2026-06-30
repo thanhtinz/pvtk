@@ -50,6 +50,25 @@ public final class ConsoleClient {
             @Override public void onChat(ChatBroadcast chat) {
                 System.out.println("[" + chat.channel() + "] " + chat.fromName() + ": " + chat.text());
             }
+            @Override public void onInventoryChanged() {
+                var inv = ref[0].state().inventory();
+                System.out.println("[bag] gold=" + inv.gold() + " items=" + inv.bag().size()
+                        + " " + inv.bag().stream().map(s -> s.name() + "x" + s.count()).toList());
+            }
+            @Override public void onCombat(vn.pvtk.protocol.message.Messages.CombatEvent e) {
+                System.out.println("[combat] " + e.attackerId() + " hit " + e.targetId()
+                        + " for " + e.damage() + " (hp=" + e.targetHp() + (e.killed() ? ", KILLED" : "") + ")");
+            }
+            @Override public void onCountryResult(int op, vn.pvtk.protocol.message.Messages.CountryActionResult r) {
+                System.out.println("[country] " + (r.ok() ? "OK" : "FAIL") + " - " + r.message()
+                        + (r.country() != null ? " {" + r.country().name() + " #" + r.country().id()
+                            + ", " + r.country().memberCount() + " members}" : ""));
+            }
+            @Override public void onCountryList(vn.pvtk.protocol.message.Messages.CountryList l) {
+                System.out.println("[country list] " + l.countries().size() + " bang:");
+                l.countries().forEach(c -> System.out.println("  #" + c.id() + " " + c.name()
+                        + " (vua " + c.kingName() + ", " + c.memberCount() + " members)"));
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -85,8 +104,32 @@ public final class ConsoleClient {
                 }
                 case "who" -> {
                     System.out.println("you: " + client.state().self());
-                    client.state().others().forEach(e -> System.out.println("  - " + e));
+                    client.state().others().forEach(e ->
+                            System.out.println("  - " + e + (e.isMonster() ? " [monster]" : "")));
                 }
+                case "jump" -> {
+                    if (t.length > 1) {
+                        client.jumpMap(Integer.parseInt(t[1].trim()));
+                    } else {
+                        System.out.println("usage: jump <mapId>  (1=town, 3=wilderness w/ monsters)");
+                    }
+                }
+                case "bag" -> client.requestBag();
+                case "eq" -> {
+                    if (t.length > 1) {
+                        client.equip(Integer.parseInt(t[1].trim()));
+                    } else {
+                        System.out.println("usage: eq <bagSlot>");
+                    }
+                }
+                case "atk" -> {
+                    if (t.length > 1) {
+                        client.attack(Integer.parseInt(t[1].trim()));
+                    } else {
+                        System.out.println("usage: atk <targetId>   (see ids via 'who')");
+                    }
+                }
+                case "country" -> handleCountry(client, t.length > 1 ? t[1] : "");
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -96,8 +139,37 @@ public final class ConsoleClient {
         }
     }
 
+    private static void handleCountry(GameClient client, String rest) {
+        String[] a = rest.trim().split("\\s+", 2);
+        switch (a[0]) {
+            case "create" -> {
+                if (a.length > 1) {
+                    client.createCountry(a[1]);
+                } else {
+                    System.out.println("usage: country create <name>");
+                }
+            }
+            case "list" -> client.listCountries();
+            case "join" -> {
+                if (a.length > 1) {
+                    client.joinCountry(Integer.parseInt(a[1].trim()));
+                } else {
+                    System.out.println("usage: country join <id>");
+                }
+            }
+            case "leave" -> client.leaveCountry();
+            case "info" -> client.countryInfo();
+            default -> System.out.println("country create <name> | list | join <id> | leave | info");
+        }
+    }
+
     private static void printHelp() {
-        System.out.println("commands: m <x> <y> | s <text> | who | quit");
+        System.out.println("commands:");
+        System.out.println("  m <x> <y>            move          s <text>     say (world)");
+        System.out.println("  jump <mapId>         change map     who          list entities");
+        System.out.println("  bag                  inventory      eq <slot>    equip item");
+        System.out.println("  atk <targetId>       attack         quit         exit");
+        System.out.println("  country create <name> | list | join <id> | leave | info");
     }
 
     private static String arg(String[] args, String key, String def) {

@@ -14,6 +14,7 @@ public final class Entity {
     public int hp;
     public int maxHp;
     public int level;
+    public int kind;
 
     public Entity(EntityState s) {
         this.id = s.id();
@@ -29,6 +30,11 @@ public final class Entity {
         this.hp = s.hp();
         this.maxHp = s.maxHp();
         this.level = s.level();
+        this.kind = s.kind();
+    }
+
+    public boolean isMonster() {
+        return kind == vn.pvtk.protocol.message.Messages.KIND_MONSTER;
     }
 
     public void moveTo(int x, int y, int dir) {

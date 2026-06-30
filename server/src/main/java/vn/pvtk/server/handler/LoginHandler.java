@@ -7,6 +7,7 @@ import vn.pvtk.protocol.message.Messages.LoginRequest;
 import vn.pvtk.protocol.message.Messages.LoginResponse;
 import vn.pvtk.protocol.message.Messages.WorldSnapshot;
 import vn.pvtk.server.session.PlayerSession;
+import vn.pvtk.server.world.Inventory;
 import vn.pvtk.server.world.MapInstance;
 import vn.pvtk.server.world.Player;
 import vn.pvtk.server.world.World;
@@ -45,7 +46,12 @@ public final class LoginHandler implements PacketHandler {
 
         World world = ctx.world();
         MapInstance start = world.map(1);
-        Player player = new Player(req.username(), start.mapId(), start.spawnX(), start.spawnY());
+        Inventory inventory = new Inventory(ctx.gameData());
+        // Starter gear from the real item table (novice head/armor/shoes: ids 1,2,3).
+        inventory.add(1, 1);
+        inventory.add(2, 1);
+        inventory.add(3, 1);
+        Player player = new Player(req.username(), start.mapId(), start.spawnX(), start.spawnY(), inventory);
         session.bindPlayer(player);
         ctx.sessions().onAuthenticated(session);
 
@@ -55,6 +61,9 @@ public final class LoginHandler implements PacketHandler {
         world.enter(session);
         // 3) Send the full snapshot of everyone already visible.
         session.send(new WorldSnapshot(player.mapId(), world.visibleEntities(player)).toPacket());
+        // 4) Send the initial inventory snapshot.
+        session.send(new vn.pvtk.protocol.message.Messages.BagSnapshot(
+                player.gold(), inventory.bagStacks(), inventory.equipmentStacks()).toPacket());
 
         log.info("Login OK: {} from {} on line {}", req.username(), session.remoteAddress(), req.serverLine());
     }
