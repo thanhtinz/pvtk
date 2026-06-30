@@ -100,10 +100,14 @@ const views = {
     const { news } = await api('/news');
     const list = document.getElementById('list');
     if (!news.length) list.innerHTML = '<p class="muted">Chưa có tin tức.</p>';
-    news.forEach(n => list.appendChild(el(`<div class="card">
-      <h3>${n.type === 'event' ? '🎉 ' : '📰 '}${esc(n.title)}</h3>
-      <div class="muted" style="font-size:12px">${new Date(n.date).toLocaleString('vi')}</div>
-      <p style="white-space:pre-wrap">${esc(n.body)}</p></div>`)));
+    news.forEach(n => {
+      const cd = n.type === 'event' && n.endAt ? `<div class="tag" data-end="${n.endAt}" style="margin-top:6px">⏳ …</div>` : '';
+      list.appendChild(el(`<div class="card">
+        <h3>${n.type === 'event' ? '🎉 ' : '📰 '}${esc(n.title)}</h3>
+        <div class="muted" style="font-size:12px">${new Date(n.date).toLocaleString('vi')}</div>
+        <p style="white-space:pre-wrap">${esc(n.body)}</p>${cd}</div>`));
+    });
+    tickCountdowns();
   },
 
   async leaderboard() {
@@ -195,10 +199,38 @@ const views = {
         { oldPassword: document.getElementById('op').value, newPassword: document.getElementById('np').value });
         toast('Đổi mật khẩu thành công!'); } catch (e) { toast(e.message); }
     };
+    // Transaction history
+    const { transactions } = await api('/me/transactions');
+    const tx = el(`<div class="card" style="grid-column:1/-1"><h3>Lịch sử giao dịch</h3>
+      <table id="txt"><tr><th>Thời gian</th><th>Loại</th><th>Chi tiết</th><th>Số lượng</th></tr></table></div>`);
+    app().querySelector('.cards').appendChild(tx);
+    const txt = tx.querySelector('#txt');
+    if (!transactions.length) txt.appendChild(el('<tr><td colspan="4" class="muted">Chưa có giao dịch.</td></tr>'));
+    transactions.forEach(t => txt.appendChild(el(`<tr>
+      <td class="muted">${new Date(t.time).toLocaleString('vi')}</td>
+      <td><span class="tag">${esc(t.type)}</span></td><td>${esc(t.detail)}</td>
+      <td style="color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">${t.amount > 0 ? '+' : ''}${t.amount} ${esc(t.currency)}</td></tr>`)));
   },
 };
 
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function fmtDur(ms) {
+  if (ms <= 0) return 'Đã kết thúc';
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
+    m = Math.floor(s % 3600 / 60), ss = s % 60;
+  return (d ? d + 'n ' : '') + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+}
+let _cdTimer = null;
+function tickCountdowns() {
+  if (_cdTimer) clearInterval(_cdTimer);
+  const upd = () => {
+    const now = Date.now();
+    document.querySelectorAll('[data-end]').forEach(e => {
+      e.textContent = '⏳ Còn lại: ' + fmtDur(Number(e.dataset.end) - now);
+    });
+  };
+  upd(); _cdTimer = setInterval(upd, 1000);
+}
 
 function router() {
   const view = (location.hash || '#home').slice(1);

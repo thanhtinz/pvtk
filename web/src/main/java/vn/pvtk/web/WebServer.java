@@ -138,6 +138,11 @@ public final class WebServer {
             sendJson(ex, 200, accountView(requireUser(ex)));
             return;
         }
+        if (p.equals("/me/transactions") && m.equals("GET")) {
+            Account a = requireUser(ex);
+            sendJson(ex, 200, Map.of("transactions", web.transactionsFor(a.username, 100)));
+            return;
+        }
         if (p.equals("/auth/change-password") && m.equals("POST")) {
             Account a = requireUser(ex);
             Map<String, Object> b = body(ex);
@@ -155,6 +160,7 @@ public final class WebServer {
             }
             a.balance += amount;
             game.accounts().save();
+            web.addTx(a.username, "topup", "Nạp " + amount + " 💎", amount, "balance", System.currentTimeMillis());
             sendJson(ex, 200, Map.of("balance", a.balance));
             return;
         }
@@ -217,6 +223,20 @@ public final class WebServer {
             }
             case "/mail" -> sendJson(ex, 200, adminSendMail(body(ex)));
             case "/reset-boss" -> sendJson(ex, 200, Map.of("respawned", game.world().resetMonsters()));
+            case "/transactions" -> sendJson(ex, 200, Map.of("transactions", web.recentTransactions(200)));
+            case "/online" -> sendJson(ex, 200, Map.of("players", onlineView()));
+            case "/announce" -> {
+                String msg = str(body(ex), "message");
+                if (!msg.isBlank()) {
+                    game.world().announce(msg);
+                }
+                sendJson(ex, 200, Map.of("ok", true, "online", game.sessions().onlineCount()));
+            }
+            case "/market" -> sendJson(ex, 200, Map.of("listings", game.world().market().view()));
+            case "/market/remove" -> {
+                boolean ok = game.world().removeMarketListing((int) num(body(ex), "listingId"));
+                sendJson(ex, 200, Map.of("ok", ok));
+            }
             case "/maps" -> sendJson(ex, 200, Map.of("maps", mapsView()));
             case "/monsters" -> sendJson(ex, 200, Map.of("monsters", monstersView()));
             case "/economy" -> sendJson(ex, 200, economyView());
@@ -280,6 +300,8 @@ public final class WebServer {
                 }
                 game.accounts().save();
                 web.save();
+                web.addTx(a.username, "giftcode", "Nhận giftcode " + g.code,
+                        g.rewardGold + g.rewardBalance, "reward", System.currentTimeMillis());
                 return Map.of("ok", true, "message", "Nhận quà thành công!");
             }
         }
@@ -297,6 +319,7 @@ public final class WebServer {
                         "Cảm ơn bạn đã mua " + pr.name, 0,
                         List.of(new int[]{pr.itemId, pr.count}));
                 game.accounts().save();
+                web.addTx(a.username, "buy", "Mua " + pr.name, -pr.price, "balance", System.currentTimeMillis());
                 return Map.of("ok", true, "balance", a.balance, "message", "Mua thành công, kiểm tra hòm thư trong game!");
             }
         }
@@ -326,6 +349,9 @@ public final class WebServer {
             grantGold(a, deltaGold);
         }
         game.accounts().save();
+        web.addTx(username, "admin_economy",
+                "Admin chỉnh: " + (deltaGold != 0 ? deltaGold + " vàng " : "") + (deltaBalance != 0 ? deltaBalance + " 💎" : ""),
+                deltaGold + deltaBalance, "mixed", System.currentTimeMillis());
         return Map.of("ok", true, "gold", a.gold, "balance", a.balance);
     }
 
@@ -350,6 +376,8 @@ public final class WebServer {
         }
         int gold = (int) num(b, "gold");
         game.world().sendMail("Admin", to, str(b, "subject"), str(b, "body"), gold, items);
+        web.addTx(to, "admin_mail", "Admin gửi thư (" + items.size() + " vật phẩm)", gold, "item",
+                System.currentTimeMillis());
         return Map.of("ok", true, "items", items.size(), "gold", gold);
     }
 
@@ -367,6 +395,8 @@ public final class WebServer {
         n.body = str(b, "body");
         n.type = "event".equals(str(b, "type")) ? "event" : "news";
         n.date = System.currentTimeMillis();
+        n.startAt = num(b, "startAt");
+        n.endAt = num(b, "endAt");
         web.save();
         return Map.of("ok", true, "id", n.id);
     }
@@ -544,6 +574,26 @@ public final class WebServer {
             m.put("hpMax", d.hpMax());
             m.put("rewardExp", d.rewardExp());
             m.put("rewardGold", d.rewardMoney());
+            out.add(m);
+        }
+        return out;
+    }
+
+    private List<Map<String, Object>> onlineView() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (var s : game.sessions().all()) {
+            if (s.player() == null) {
+                continue;
+            }
+            var pl = s.player();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", pl.name());
+            m.put("map", game.world().map(pl.mapId()).name());
+            m.put("mapId", pl.mapId());
+            m.put("level", pl.level());
+            m.put("gold", pl.gold());
+            m.put("x", pl.x());
+            m.put("y", pl.y());
             out.add(m);
         }
         return out;

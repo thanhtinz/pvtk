@@ -26,6 +26,24 @@ public final class WebData {
         public String body = "";
         public String type = "news"; // news | event
         public long date;
+        public long startAt;          // event start (0 = none)
+        public long endAt;            // event end / countdown target (0 = none)
+    }
+
+    /** An economy/audit record shown in player & admin history. */
+    public static final class Tx {
+        public long id;
+        public long time;
+        public String user = "";
+        public String type = "";      // topup | buy | giftcode | admin_economy | admin_mail | announce
+        public String detail = "";
+        public long amount;           // signed
+        public String currency = "";  // balance | gold | item
+        public Tx() { }
+        public Tx(long id, String user, String type, String detail, long amount, String currency) {
+            this.id = id; this.time = 0; this.user = user; this.type = type;
+            this.detail = detail; this.amount = amount; this.currency = currency;
+        }
     }
 
     public static final class Giftcode {
@@ -52,8 +70,10 @@ public final class WebData {
         public List<News> news = new ArrayList<>();
         public List<Giftcode> giftcodes = new ArrayList<>();
         public List<Product> products = new ArrayList<>();
+        public List<Tx> transactions = new ArrayList<>();
         public int newsSeq = 1;
         public int productSeq = 1;
+        public long txSeq = 1;
     }
 
     private final Path file;
@@ -108,5 +128,32 @@ public final class WebData {
 
     public Root root() {
         return root;
+    }
+
+    /** Records a transaction (newest first) and persists. */
+    public synchronized void addTx(String user, String type, String detail, long amount, String currency, long nowMs) {
+        Tx tx = new Tx(root.txSeq++, user, type, detail, amount, currency);
+        tx.time = nowMs;
+        root.transactions.add(0, tx);
+        // Keep the log bounded.
+        while (root.transactions.size() > 5000) {
+            root.transactions.remove(root.transactions.size() - 1);
+        }
+        save();
+    }
+
+    public List<Tx> transactionsFor(String user, int limit) {
+        List<Tx> out = new ArrayList<>();
+        for (Tx t : root.transactions) {
+            if (t.user.equalsIgnoreCase(user)) {
+                out.add(t);
+                if (out.size() >= limit) break;
+            }
+        }
+        return out;
+    }
+
+    public List<Tx> recentTransactions(int limit) {
+        return root.transactions.subList(0, Math.min(limit, root.transactions.size()));
     }
 }

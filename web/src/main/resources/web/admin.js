@@ -221,6 +221,54 @@ const tabs = {
     document.getElementById('new').onclick = () => newsDialog();
   },
 
+  async online() {
+    const { players } = await api('/admin/online');
+    app().innerHTML = `<h2>Người chơi đang online (${players.length})</h2><div class="card"><table><tr>
+      <th>Nhân vật</th><th>Bản đồ</th><th>Cấp</th><th>Vàng</th><th>Vị trí</th></tr>
+      ${players.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.map)}</td><td>${p.level}</td>
+        <td>${p.gold}</td><td class="muted">(${p.x},${p.y})</td></tr>`).join('')}
+      ${players.length ? '' : '<tr><td colspan="5" class="muted">Không có ai online.</td></tr>'}</table></div>`;
+  },
+
+  announce() {
+    app().innerHTML = `<h2>Gửi thông báo toàn server</h2>
+      <div class="card" style="max-width:560px">
+        <p class="muted">Tin nhắn sẽ hiện ở kênh Hệ thống cho mọi người đang chơi.</p>
+        <label>Nội dung</label><textarea id="msg" rows="3" placeholder="VD: Bảo trì lúc 22h, sự kiện x2 EXP cuối tuần!"></textarea>
+        <button class="btn" id="go" style="margin-top:14px">📢 Phát thông báo</button>
+      </div>`;
+    document.getElementById('go').onclick = async () => {
+      const r = await api('/admin/announce', 'POST', { message: document.getElementById('msg').value });
+      toast('Đã gửi tới ' + r.online + ' người chơi online');
+    };
+  },
+
+  async market() {
+    const { listings } = await api('/admin/market');
+    app().innerHTML = `<h2>Chợ giao dịch ingame (${listings.length})</h2>
+      <div class="card"><table id="t"><tr>
+        <th>ID</th><th>Người bán</th><th>Vật phẩm</th><th>SL</th><th>Giá</th><th></th></tr></table></div>`;
+    const t = document.getElementById('t');
+    if (!listings.length) t.appendChild(el('<tr><td colspan="6" class="muted">Chợ trống.</td></tr>'));
+    listings.forEach(l => {
+      const tr = el(`<tr><td>${l.listingId}</td><td>${esc(l.sellerName)}</td>
+        <td><img class="icon" style="width:22px;height:22px" src="${iconUrl(l.itemId)}"/> ${esc(l.itemName)}</td>
+        <td>${l.count}</td><td>${l.price}💰</td><td><button class="btn small red">Gỡ</button></td></tr>`);
+      tr.querySelector('button').onclick = async () => { await api('/admin/market/remove', 'POST', { listingId: l.listingId }); tabs.market(); };
+      t.appendChild(tr);
+    });
+  },
+
+  async transactions() {
+    const { transactions } = await api('/admin/transactions');
+    app().innerHTML = `<h2>Lịch sử giao dịch (toàn server)</h2><div class="card"><table><tr>
+      <th>Thời gian</th><th>Tài khoản</th><th>Loại</th><th>Chi tiết</th><th>Số lượng</th></tr>
+      ${transactions.map(t => `<tr><td class="muted">${new Date(t.time).toLocaleString('vi')}</td>
+        <td>${esc(t.user)}</td><td><span class="tag">${esc(t.type)}</span></td><td>${esc(t.detail)}</td>
+        <td style="color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">${t.amount > 0 ? '+' : ''}${t.amount} ${esc(t.currency)}</td></tr>`).join('')}
+      ${transactions.length ? '' : '<tr><td colspan="5" class="muted">Chưa có giao dịch.</td></tr>'}</table></div>`;
+  },
+
   async economy() {
     const e = await api('/admin/economy');
     app().innerHTML = `<h2>Kinh tế toàn server</h2><div class="grid cards">
@@ -296,11 +344,15 @@ function newsDialog() {
     <label>Loại</label><select id="type"><option value="news">Tin tức</option><option value="event">Sự kiện</option></select>
     <label>Tiêu đề</label><input id="title"/>
     <label>Nội dung</label><textarea id="body" rows="5"></textarea>
+    <div class="row"><div style="flex:1"><label>Bắt đầu (sự kiện)</label><input id="start" type="datetime-local"/></div>
+      <div style="flex:1"><label>Kết thúc (đếm ngược)</label><input id="end" type="datetime-local"/></div></div>
     <div class="row" style="margin-top:14px"><button class="btn" id="ok">Đăng</button>
       <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
+  const ms = id => { const v = document.getElementById(id).value; return v ? new Date(v).getTime() : 0; };
   document.getElementById('ok').onclick = async () => {
     await api('/admin/news', 'POST', { type: document.getElementById('type').value,
-      title: document.getElementById('title').value, body: document.getElementById('body').value });
+      title: document.getElementById('title').value, body: document.getElementById('body').value,
+      startAt: ms('start'), endAt: ms('end') });
     toast('Đã đăng'); closeModal(); tabs.news();
   };
 }

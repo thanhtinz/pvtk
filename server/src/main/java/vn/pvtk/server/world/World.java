@@ -359,6 +359,28 @@ public final class World {
         return monstersById.get(id);
     }
 
+    /** Admin: broadcasts a system chat message to every online player. */
+    public void announce(String message) {
+        Packet p = new vn.pvtk.protocol.message.Messages.ChatBroadcast(
+                vn.pvtk.protocol.message.Messages.Channel.SYSTEM, 0, "Hệ thống", message).toPacket();
+        broadcastToAll(p);
+    }
+
+    /** Admin: removes a marketplace listing and mails the item back to the seller. */
+    public boolean removeMarketListing(int listingId) {
+        MarketRegistry.Listing l = market.remove(listingId);
+        if (l == null) {
+            return false;
+        }
+        mail.send("Chợ", l.sellerName(), "Hủy rao bán",
+                "Quản trị đã gỡ tin rao bán của bạn, vật phẩm được hoàn lại.", 0, l.itemId(), l.count());
+        PlayerSession s = findByName(l.sellerName());
+        if (s != null && s.player() != null) {
+            s.send(new Messages.MailList(mail.inbox(l.sellerName())).toPacket());
+        }
+        return true;
+    }
+
     /** Admin: instantly respawn every monster (used for "reset boss"). Returns count. */
     public int resetMonsters() {
         int n = 0;
