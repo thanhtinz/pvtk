@@ -91,6 +91,11 @@ public final class Opcodes {
     public static final int MARKET_BUY          = 13517; // marketplace: buy a listing
     public static final int MERC_LIST           = 15503; // mercenary/pet: hireable list
     public static final int MERC_BUY            = 15505; // mercenary/pet: hire
+    public static final int RELATION_ADD        = 13530; // friends: add
+    public static final int RELATION_DEL        = 13531; // friends: remove
+    public static final int MAIL_CLAIM          = 11011; // mail: claim attachment
+    public static final int WAR_DECLARE         = 15047; // country war: declare
+    public static final int WAR_STATUS          = 15040; // country war: status / scoreboard
 
     static {
         register(5000, "CHECK_EDITION_MSG");

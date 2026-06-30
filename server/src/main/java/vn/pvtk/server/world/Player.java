@@ -34,6 +34,7 @@ public final class Player {
     private final java.util.Map<Integer, Integer> questProgress = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Set<Integer> completedQuests = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final java.util.Set<Integer> unlockedAchievements = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Set<String> friends = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public Player(String name, int mapId, int x, int y, Inventory inventory) {
         this.id = IDS.getAndIncrement();
@@ -155,6 +156,14 @@ public final class Player {
 
     public java.util.Set<Integer> unlockedAchievements() {
         return unlockedAchievements;
+    }
+
+    public java.util.Set<String> friends() {
+        return friends;
+    }
+
+    public boolean hasPet() {
+        return petBonus > 0 && !petName.isEmpty();
     }
 
     public int exp() {

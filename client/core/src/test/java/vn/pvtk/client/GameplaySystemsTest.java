@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import vn.pvtk.protocol.message.Messages.CombatEvent;
 import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
+import vn.pvtk.protocol.message.Messages;
 import vn.pvtk.protocol.message.Messages.AchievementList;
+import vn.pvtk.protocol.message.Messages.FriendList;
 import vn.pvtk.protocol.message.Messages.MailList;
 import vn.pvtk.protocol.message.Messages.MarketList;
 import vn.pvtk.protocol.message.Messages.MercList;
@@ -19,6 +21,7 @@ import vn.pvtk.protocol.message.Messages.QuestList;
 import vn.pvtk.protocol.message.Messages.ShopListing;
 import vn.pvtk.protocol.message.Messages.SkillList;
 import vn.pvtk.protocol.message.Messages.TeamUpdate;
+import vn.pvtk.protocol.message.Messages.WarStatus;
 import vn.pvtk.client.model.Entity;
 import vn.pvtk.server.GameServer;
 import vn.pvtk.server.ServerConfig;
@@ -335,6 +338,133 @@ class GameplaySystemsTest {
                     "merc should be owned after hire");
         }
         c.disconnect();
+    }
+
+    @Test
+    void hiredPetAppearsAsCompanionEntity() throws Exception {
+        AtomicReference<MercList> mercs = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onMercList(MercList m) {
+                mercs.set(m);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("ChuPet", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        a.requestMercs();
+        assertTrue(await(() -> mercs.get() != null && mercs.get().mercs().stream()
+                .anyMatch(m -> m.price() <= 100)), "an affordable merc should exist");
+        int mercId = mercs.get().mercs().stream().filter(m -> m.price() <= 100)
+                .findFirst().orElseThrow().id();
+        a.hireMerc(mercId);
+        a.jumpMap(3);
+
+        // A second player on the same map should see A's pet companion entity.
+        GameClient b = new GameClient(new GameClientListener() { });
+        b.connect("127.0.0.1", port);
+        b.login("KhachQuaDuong", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+        b.jumpMap(3);
+
+        assertTrue(await(() -> b.state().others().stream()
+                        .anyMatch(e -> e.kind == Messages.KIND_PET)),
+                "B should see A's pet on map 3");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void friendsAddAndListOnlineStatus() throws Exception {
+        AtomicReference<FriendList> friends = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onFriendList(FriendList f) {
+                friends.set(f);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("NguoiA", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        GameClient b = new GameClient(new GameClientListener() { });
+        b.connect("127.0.0.1", port);
+        b.login("BanThan", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+
+        a.addFriend("BanThan");
+        assertTrue(await(() -> friends.get() != null && friends.get().friends().stream()
+                        .anyMatch(f -> f.name().equals("BanThan") && f.online())),
+                "BanThan should be listed as an online friend");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void mailItemAttachmentDeliversAndClaims() throws Exception {
+        GameClient a = new GameClient(new GameClientListener() { });
+        a.connect("127.0.0.1", port);
+        a.login("GuiDo", "", 0);
+        assertTrue(await(() -> a.state().inventory().bag().size() == 3), "A bag");
+
+        AtomicReference<MailList> bMail = new AtomicReference<>();
+        GameClient b = new GameClient(new GameClientListener() {
+            @Override public void onMailList(MailList m) {
+                bMail.set(m);
+            }
+        });
+        b.connect("127.0.0.1", port);
+        b.login("NhanDo", "", 0);
+        assertTrue(await(() -> b.state().inventory().bag().size() == 3), "B bag");
+
+        // A mails bag slot 0 (an item) to B.
+        a.sendMail("NhanDo", "Quà", "Tặng bạn", 0, 0, 1);
+        assertTrue(await(() -> bMail.get() != null && bMail.get().mails().stream()
+                        .anyMatch(m -> m.itemId() > 0)),
+                "B should receive mail with an item attachment");
+        assertTrue(await(() -> a.state().inventory().bag().size() == 2), "item left A's bag");
+
+        int mailId = bMail.get().mails().stream().filter(m -> m.itemId() > 0)
+                .findFirst().orElseThrow().id();
+        b.claimMail(mailId);
+        assertTrue(await(() -> b.state().inventory().bag().size() == 4),
+                "B's bag should grow after claiming the item");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void countryWarDeclareAndScore() throws Exception {
+        // King A founds a country and declares war on King B's country.
+        AtomicReference<WarStatus> aWar = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onWarStatus(WarStatus w) {
+                aWar.set(w);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("VuaA", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        AtomicReference<Integer> bCountry = new AtomicReference<>();
+        GameClient b = new GameClient(new GameClientListener() {
+            @Override public void onCountryResult(int op, CountryActionResult r) {
+                if (r.ok() && r.country() != null) bCountry.set(r.country().id());
+            }
+        });
+        b.connect("127.0.0.1", port);
+        b.login("VuaB", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+
+        a.createCountry("Bang A");
+        b.createCountry("Bang B");
+        assertTrue(await(() -> bCountry.get() != null), "B country created");
+
+        a.declareWar(bCountry.get());
+        assertTrue(await(() -> aWar.get() != null && aWar.get().active()
+                        && aWar.get().defender().equals("Bang B")),
+                "war should be active between Bang A and Bang B");
+        a.disconnect();
+        b.disconnect();
     }
 
     private static boolean await(java.util.function.BooleanSupplier cond) throws InterruptedException {

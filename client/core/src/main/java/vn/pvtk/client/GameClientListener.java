@@ -6,6 +6,7 @@ import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
 import vn.pvtk.protocol.message.Messages.AchievementList;
 import vn.pvtk.protocol.message.Messages.AchievementUnlocked;
+import vn.pvtk.protocol.message.Messages.FriendList;
 import vn.pvtk.protocol.message.Messages.MailList;
 import vn.pvtk.protocol.message.Messages.MarketList;
 import vn.pvtk.protocol.message.Messages.MercList;
@@ -13,6 +14,7 @@ import vn.pvtk.protocol.message.Messages.QuestList;
 import vn.pvtk.protocol.message.Messages.ShopListing;
 import vn.pvtk.protocol.message.Messages.SkillList;
 import vn.pvtk.protocol.message.Messages.TeamUpdate;
+import vn.pvtk.protocol.message.Messages.WarStatus;
 
 /**
  * High-level game events surfaced to the UI layer. All callbacks fire on the
@@ -75,6 +77,12 @@ public interface GameClientListener {
     }
 
     default void onMercList(MercList mercs) {
+    }
+
+    default void onFriendList(FriendList friends) {
+    }
+
+    default void onWarStatus(WarStatus war) {
     }
 
     default void onDisconnected(String reason) {

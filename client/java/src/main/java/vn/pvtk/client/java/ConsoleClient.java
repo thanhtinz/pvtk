@@ -113,6 +113,16 @@ public final class ConsoleClient {
                         + " Lv" + x.level() + " +" + x.atkBonus() + " ATK - " + x.price() + " vàng"
                         + (x.owned() ? " [đang dùng]" : "")));
             }
+            @Override public void onFriendList(vn.pvtk.protocol.message.Messages.FriendList f) {
+                System.out.println("[friends] " + f.friends().size() + ":");
+                f.friends().forEach(x -> System.out.println("  " + x.name()
+                        + " Lv" + x.level() + (x.online() ? " (online)" : " (offline)")));
+            }
+            @Override public void onWarStatus(vn.pvtk.protocol.message.Messages.WarStatus w) {
+                System.out.println("[war] " + (w.active()
+                        ? w.attacker() + " " + w.attackerScore() + " - " + w.defenderScore() + " " + w.defender()
+                        : w.message()));
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -237,6 +247,24 @@ public final class ConsoleClient {
                     if (t.length > 1) client.hireMerc(Integer.parseInt(t[1].trim()));
                     else System.out.println("usage: hire <mercId>");
                 }
+                case "friends" -> client.requestFriends();
+                case "addf" -> {
+                    if (t.length > 1) client.addFriend(t[1].trim());
+                    else System.out.println("usage: addf <name>");
+                }
+                case "delf" -> {
+                    if (t.length > 1) client.removeFriend(t[1].trim());
+                    else System.out.println("usage: delf <name>");
+                }
+                case "claim" -> {
+                    if (t.length > 1) client.claimMail(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: claim <mailId>");
+                }
+                case "war" -> client.warStatus();
+                case "declare" -> {
+                    if (t.length > 1) client.declareWar(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: declare <countryId>");
+                }
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -281,6 +309,8 @@ public final class ConsoleClient {
         System.out.println("  mail                 inbox          sendmail <to> <msg>");
         System.out.println("  quests | accept <id> | turnin <id>  ach (achievements)");
         System.out.println("  market | list <slot> <price> | mbuy <id>   merc | hire <id>");
+        System.out.println("  friends | addf <name> | delf <name>   claim <mailId>");
+        System.out.println("  war | declare <countryId>");
         System.out.println("  country create <name> | list | join <id> | leave | info");
         System.out.println("  quit");
     }

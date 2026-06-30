@@ -121,11 +121,43 @@ public final class GameClient implements ConnectionListener {
 
     // --- Mail ---
     public void sendMail(String toName, String subject, String body, int gold) {
-        connection.send(new vn.pvtk.protocol.message.Messages.MailSend(toName, subject, body, gold).toPacket());
+        sendMail(toName, subject, body, gold, 0, 0);
+    }
+
+    /** Attach a bag item: {@code attachBagSlot} is the slot to send, {@code count} the amount. */
+    public void sendMail(String toName, String subject, String body, int gold, int attachBagSlot, int count) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MailSend(
+                toName, subject, body, gold, attachBagSlot, count).toPacket());
     }
 
     public void requestMail() {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.MAIL_LIST).putShort(0));
+    }
+
+    public void claimMail(int mailId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MailClaim(mailId).toPacket());
+    }
+
+    // --- Friends ---
+    public void requestFriends() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.RELATION_LIST).putShort(0));
+    }
+
+    public void addFriend(String name) {
+        connection.send(new vn.pvtk.protocol.message.Messages.FriendAction(name).add());
+    }
+
+    public void removeFriend(String name) {
+        connection.send(new vn.pvtk.protocol.message.Messages.FriendAction(name).del());
+    }
+
+    // --- Country war ---
+    public void declareWar(int targetCountryId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.WarDeclare(targetCountryId).toPacket());
+    }
+
+    public void warStatus() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.WAR_STATUS).putShort(0));
     }
 
     // --- Quests ---
@@ -236,6 +268,10 @@ public final class GameClient implements ConnectionListener {
                     vn.pvtk.protocol.message.Messages.MarketList.from(p));
             case Opcodes.MERC_LIST -> listener.onMercList(
                     vn.pvtk.protocol.message.Messages.MercList.from(p));
+            case Opcodes.RELATION_LIST -> listener.onFriendList(
+                    vn.pvtk.protocol.message.Messages.FriendList.from(p));
+            case Opcodes.WAR_STATUS -> listener.onWarStatus(
+                    vn.pvtk.protocol.message.Messages.WarStatus.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

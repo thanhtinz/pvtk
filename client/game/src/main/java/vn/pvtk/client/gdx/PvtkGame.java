@@ -84,7 +84,9 @@ public final class PvtkGame extends ApplicationAdapter {
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : client.state().others()) {
-            drawEntity(e, e.isMonster() ? Color.FIREBRICK : Color.SKY, ts);
+            Color color = e.isMonster() ? Color.FIREBRICK
+                    : (e.kind == vn.pvtk.protocol.message.Messages.KIND_PET ? Color.LIME : Color.SKY);
+            drawEntity(e, color, ts);
         }
         if (self != null) {
             drawEntity(self, Color.GOLD, ts);

@@ -22,9 +22,10 @@ public final class Messages {
     private Messages() {
     }
 
-    /** Entity kind: distinguishes players from monsters/NPCs on the wire. */
+    /** Entity kind: distinguishes players from monsters/NPCs/pets on the wire. */
     public static final int KIND_PLAYER = 0;
     public static final int KIND_MONSTER = 1;
+    public static final int KIND_PET = 2;
 
     /** A snapshot of one entity (player or NPC) as seen on the wire. */
     public record EntityState(
@@ -546,26 +547,39 @@ public final class Messages {
     // Mail (MAIL_SEND = 11009, MAIL_LIST = 11007)
     // ==================================================================
 
-    public record MailSend(String toName, String subject, String body, int gold) {
+    public record MailSend(String toName, String subject, String body, int gold, int itemId, int itemCount) {
         public Packet toPacket() {
             return new Packet(Opcodes.MAIL_SEND)
-                    .putString(toName).putString(subject).putString(body).putInt(gold);
+                    .putString(toName).putString(subject).putString(body)
+                    .putInt(gold).putInt(itemId).putShort(itemCount);
         }
 
         public static MailSend from(Packet p) {
-            return new MailSend(p.getString(), p.getString(), p.getString(), p.getInt());
+            return new MailSend(p.getString(), p.getString(), p.getString(),
+                    p.getInt(), p.getInt(), p.getUShort());
         }
     }
 
-    public record MailEntry(int id, String fromName, String subject, String body, int gold, boolean claimed) {
+    public record MailEntry(int id, String fromName, String subject, String body,
+                            int gold, int itemId, int itemCount, boolean claimed) {
         public void write(Packet p) {
             p.putInt(id).putString(fromName).putString(subject).putString(body)
-                    .putInt(gold).putBool(claimed);
+                    .putInt(gold).putInt(itemId).putShort(itemCount).putBool(claimed);
         }
 
         public static MailEntry read(Packet p) {
             return new MailEntry(p.getInt(), p.getString(), p.getString(), p.getString(),
-                    p.getInt(), p.getBool());
+                    p.getInt(), p.getInt(), p.getUShort(), p.getBool());
+        }
+    }
+
+    public record MailClaim(int mailId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.MAIL_CLAIM).putInt(mailId);
+        }
+
+        public static MailClaim from(Packet p) {
+            return new MailClaim(p.getInt());
         }
     }
 
@@ -781,6 +795,83 @@ public final class Messages {
 
         public static MercBuy from(Packet p) {
             return new MercBuy(p.getInt());
+        }
+    }
+
+    // ==================================================================
+    // Friends / relations (RELATION_LIST 13529, ADD 13530, DEL 13531)
+    // ==================================================================
+
+    public record FriendEntry(int id, String name, int level, boolean online) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putShort(level).putBool(online);
+        }
+
+        public static FriendEntry read(Packet p) {
+            return new FriendEntry(p.getInt(), p.getString(), p.getUShort(), p.getBool());
+        }
+    }
+
+    public record FriendList(List<FriendEntry> friends) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.RELATION_LIST).putShort(friends.size());
+            for (FriendEntry f : friends) {
+                f.write(p);
+            }
+            return p;
+        }
+
+        public static FriendList from(Packet p) {
+            int n = p.getUShort();
+            List<FriendEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(FriendEntry.read(p));
+            }
+            return new FriendList(list);
+        }
+    }
+
+    public record FriendAction(String name) {
+        public Packet add() {
+            return new Packet(Opcodes.RELATION_ADD).putString(name);
+        }
+
+        public Packet del() {
+            return new Packet(Opcodes.RELATION_DEL).putString(name);
+        }
+
+        public static FriendAction from(Packet p) {
+            return new FriendAction(p.getString());
+        }
+    }
+
+    // ==================================================================
+    // Country war (WAR_DECLARE 15047, WAR_STATUS 15040)
+    // ==================================================================
+
+    public record WarDeclare(int targetCountryId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.WAR_DECLARE).putInt(targetCountryId);
+        }
+
+        public static WarDeclare from(Packet p) {
+            return new WarDeclare(p.getInt());
+        }
+    }
+
+    /** active=false means "no war"; otherwise the live scoreboard. */
+    public record WarStatus(boolean active, String attacker, String defender,
+                            int attackerScore, int defenderScore, String message) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.WAR_STATUS)
+                    .putBool(active).putString(attacker).putString(defender)
+                    .putShort(attackerScore).putShort(defenderScore)
+                    .putString(message == null ? "" : message);
+        }
+
+        public static WarStatus from(Packet p) {
+            return new WarStatus(p.getBool(), p.getString(), p.getString(),
+                    p.getUShort(), p.getUShort(), p.getString());
         }
     }
 }

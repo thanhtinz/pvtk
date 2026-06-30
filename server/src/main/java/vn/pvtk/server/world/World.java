@@ -34,6 +34,9 @@ public final class World {
     private final TeamRegistry teams = new TeamRegistry();
     private final MailRegistry mail = new MailRegistry();
     private final MarketRegistry market = new MarketRegistry();
+    private final WarManager war = new WarManager();
+    // Pets keyed by owner player id.
+    private final Map<Integer, Pet> petsByOwner = new ConcurrentHashMap<>();
     private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
     // monsters indexed globally by id and per-map for AOI.
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
@@ -69,6 +72,49 @@ public final class World {
 
     public MarketRegistry market() {
         return market;
+    }
+
+    public WarManager war() {
+        return war;
+    }
+
+    // ------------------------------------------------------------------
+    // Pets
+    // ------------------------------------------------------------------
+
+    /** Spawns or moves the owner's pet next to them on their current map. */
+    public void spawnPet(PlayerSession session) {
+        Player p = session.player();
+        if (!p.hasPet()) {
+            return;
+        }
+        MapInstance map = map(p.mapId());
+        Pet pet = petsByOwner.get(p.id());
+        if (pet == null) {
+            pet = new Pet(p.id(), p.petName(), p.petBonus(), p.mapId(),
+                    map.clampX(p.x() + 1), map.clampY(p.y()));
+            petsByOwner.put(p.id(), pet);
+        } else {
+            pet.place(p.mapId(), map.clampX(p.x() + 1), map.clampY(p.y()));
+        }
+        broadcastToMap(map, new Messages.Spawn(pet.toState()).toPacket(), -1);
+    }
+
+    private void despawnPet(Player p) {
+        Pet pet = petsByOwner.get(p.id());
+        if (pet != null) {
+            broadcastToMap(map(pet.mapId()), new Messages.Despawn(pet.id()).toPacket(), -1);
+        }
+    }
+
+    private void followWithPet(Player owner) {
+        Pet pet = petsByOwner.get(owner.id());
+        if (pet == null) {
+            return;
+        }
+        MapInstance map = map(owner.mapId());
+        pet.place(owner.mapId(), map.clampX(owner.x() + 1), map.clampY(owner.y()));
+        broadcastToMap(map, new Messages.MoveUpdate(pet.id(), pet.x(), pet.y(), 0).toPacket(), -1);
     }
 
     public GameData data() {
@@ -157,6 +203,41 @@ public final class World {
                 s.player().regenMp(5);
             }
         }
+        petCombatTick(nowMs);
+    }
+
+    /** Each pet auto-attacks the nearest living monster on its map. */
+    private void petCombatTick(long nowMs) {
+        for (Pet pet : petsByOwner.values()) {
+            PlayerSession owner = sessions.byPlayerId(pet.ownerId());
+            if (owner == null || owner.player() == null) {
+                continue;
+            }
+            MapInstance map = map(pet.mapId());
+            Monster target = null;
+            for (Monster m : monstersOnMap(pet.mapId())) {
+                if (!m.isDead() && Math.abs(m.x() - pet.x()) <= 4 && Math.abs(m.y() - pet.y()) <= 4) {
+                    target = m;
+                    break;
+                }
+            }
+            if (target == null) {
+                continue;
+            }
+            int dmg = Math.max(1, pet.atkBonus());
+            boolean killed = target.damage(dmg, nowMs);
+            broadcastToMap(map, new CombatEvent(pet.id(), target.id(), dmg, target.hp(), killed).toPacket(), -1);
+            if (killed) {
+                Player p = owner.player();
+                p.addGold(target.def().rewardMoney());
+                p.addExp(target.def().rewardExp());
+                p.addKill();
+                p.incrementKillQuests();
+                owner.send(new Messages.Spawn(p.toState()).toPacket());
+                broadcastToMap(map, new Messages.Despawn(target.id()).toPacket(), -1);
+                checkAchievements(owner);
+            }
+        }
     }
 
     public MapInstance map(int mapId) {
@@ -174,6 +255,7 @@ public final class World {
         map.addPlayer(p.id());
         // Tell everyone already in the map that a new entity spawned.
         broadcastToMap(map, new vn.pvtk.protocol.message.Messages.Spawn(p.toState()).toPacket(), p.id());
+        spawnPet(session);
         log.info("Player {} (#{}) entered map {} [{}] ({} online)",
                 p.name(), p.id(), map.mapId(), map.name(), sessions.onlineCount());
     }
@@ -186,6 +268,8 @@ public final class World {
         }
         MapInstance map = map(p.mapId());
         map.removePlayer(p.id());
+        despawnPet(p);
+        petsByOwner.remove(p.id());
         broadcastToMap(map, new vn.pvtk.protocol.message.Messages.Despawn(p.id()).toPacket(), p.id());
         log.info("Player {} (#{}) left map {} ({} online)",
                 p.name(), p.id(), map.mapId(), sessions.onlineCount());
@@ -207,6 +291,11 @@ public final class World {
         for (Monster m : monstersOnMap(map.mapId())) {
             if (!m.isDead()) {
                 list.add(m.toState(map.mapId()));
+            }
+        }
+        for (Pet pet : petsByOwner.values()) {
+            if (pet.mapId() == map.mapId() && pet.ownerId() != viewer.id()) {
+                list.add(pet.toState());
             }
         }
         return list;
@@ -277,6 +366,16 @@ public final class World {
                 target.moveTo(map.spawnX(), map.spawnY(), 0);
                 broadcastToMap(map, new MoveUpdate(target.id(), target.x(), target.y(), 0).toPacket(), -1);
                 targetSession.send(new Messages.Spawn(target.toState()).toPacket());
+                // Country-war scoring: a kill between the two warring nations scores a point.
+                if (attacker.countryId() != 0 && target.countryId() != 0
+                        && attacker.countryId() != target.countryId()) {
+                    WarManager.War w = war.recordKill(attacker.countryId());
+                    if (w != null) {
+                        Packet status = w.toStatus().toPacket();
+                        broadcastToCountry(w.attackerCountryId(), status);
+                        broadcastToCountry(w.defenderCountryId(), status);
+                    }
+                }
             }
         }
     }
@@ -305,12 +404,14 @@ public final class World {
             return;
         }
         old.removePlayer(p.id());
+        despawnPet(p);
         broadcastToMap(old, new Messages.Despawn(p.id()).toPacket(), p.id());
 
         p.mapId(dest.mapId());
         p.moveTo(dest.spawnX(), dest.spawnY(), 0);
         dest.addPlayer(p.id());
         broadcastToMap(dest, new Messages.Spawn(p.toState()).toPacket(), p.id());
+        spawnPet(session);
 
         // Update the traveller's own position and give it the new map snapshot.
         session.send(new Messages.Spawn(p.toState()).toPacket());
@@ -327,6 +428,7 @@ public final class World {
         p.moveTo(cx, cy, dir);
         Packet update = new vn.pvtk.protocol.message.Messages.MoveUpdate(p.id(), cx, cy, dir).toPacket();
         broadcastToMap(map, update, -1); // include the mover for authoritative reconciliation
+        followWithPet(p);
     }
 
     /** Sends a packet to every player on {@code map} except {@code exceptPlayerId}. */

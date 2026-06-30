@@ -65,6 +65,16 @@ public final class PacketDispatcher {
         MercenaryHandler merc = new MercenaryHandler();
         register(Opcodes.MERC_LIST, merc);
         register(Opcodes.MERC_BUY, merc);
+
+        FriendHandler friend = new FriendHandler();
+        register(Opcodes.RELATION_LIST, friend);
+        register(Opcodes.RELATION_ADD, friend);
+        register(Opcodes.RELATION_DEL, friend);
+        register(Opcodes.MAIL_CLAIM, new MailHandler());
+
+        WarHandler war = new WarHandler();
+        register(Opcodes.WAR_DECLARE, war);
+        register(Opcodes.WAR_STATUS, war);
     }
 
     public void register(int opcode, PacketHandler handler) {

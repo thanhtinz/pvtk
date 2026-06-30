@@ -38,6 +38,7 @@ public final class MercenaryHandler implements PacketHandler {
                         p.addGold(-price);
                         p.setPet(def.name(), bonus);
                         session.send(new vn.pvtk.protocol.message.Messages.Spawn(p.toState()).toPacket());
+                        ctx.world().spawnPet(session); // bring the companion into the world
                     }
                 }
                 session.send(buildList(offers, p).toPacket());
@@ -67,6 +68,6 @@ public final class MercenaryHandler implements PacketHandler {
     }
 
     private int price(MonsterDef def) {
-        return Math.max(50, def.level() * 50);
+        return Math.max(30, def.level() * 12);
     }
 }

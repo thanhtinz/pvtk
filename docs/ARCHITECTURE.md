@@ -99,15 +99,22 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
 * **player marketplace** — consign an item for a price, browse listings, buy;
   the seller is paid by mail so it settles even while offline (`MarketHandler`,
   `MarketRegistry`);
-* **mercenary / pet** — hire a companion (derived from `monster.txt`) that adds a
-  permanent attack bonus (`MercenaryHandler`).
+* **mercenary / pet** — hire a companion (derived from `monster.txt`); the pet
+  is a real entity that follows its owner and auto-attacks nearby monsters on the
+  world tick, sharing rewards (`MercenaryHandler`, `Pet`, `World.petCombatTick`);
+* **friends** — add / remove by name with live online status (`FriendHandler`);
+* **mail attachments** — mail can now carry an item as well as gold; the
+  recipient claims it into their bag (`MailHandler`, `MailRegistry.claim`);
+* **country war** — a king declares war on another country; PvP kills between the
+  two nations score points and the first to 10 wins, with a live scoreboard
+  pushed to both sides (`WarHandler`, `WarManager`).
 
 Each system is covered by an integration test in `client/core` that drives the
-real server with real clients (21 tests total).
+real server with real clients (25 tests total).
 
 **Roadmap (opcodes already catalogued in `OPCODES.md`):** turn-based skill
-battles matching the original engine, escort missions, country war, item
-attachments in mail, deeper pet AI. Each maps to a documented opcode and slots
+battles matching the original engine, escort missions, deeper pet/monster AI,
+and the remaining catalogued opcodes. Each maps to a documented opcode and slots
 into the dispatcher as a new `PacketHandler`.
 
 **Combat is a deliberate simplification.** The original game used turn-based
