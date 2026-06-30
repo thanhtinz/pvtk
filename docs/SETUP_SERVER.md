@@ -118,6 +118,29 @@ Sao lưu = copy thư mục `data/`. Muốn reset toàn bộ = xóa `data/`.
 
 ---
 
+## 6b. Cấu hình nạp tiền qua SePay (chuyển khoản ngân hàng)
+
+Luồng: người chơi nạp **Xu** trên web qua chuyển khoản → trong game gõ lệnh
+`convert <số xu>` để đổi **Xu → Tiền nạp (coin)** dùng trong game.
+
+1. Tạo tài khoản tại <https://sepay.vn>, liên kết ngân hàng của bạn.
+2. Vào **Admin → Cổng nạp (SePay)** trên web của bạn, điền:
+   - **Bật cổng nạp**, **Mã ngân hàng** (vd `MBBank`), **Số tài khoản**,
+     **Chủ tài khoản**, **Prefix** nội dung CK (vd `PVTK`), và **Webhook API Key**
+     (một chuỗi bí mật bạn tự đặt).
+3. Vào **Admin → Gói nạp** tạo các gói (vd: 50.000đ → 500 Xu +75 thưởng).
+4. Trong bảng điều khiển **SePay**, thêm **Webhook**:
+   - URL: `http://<tên-miền-hoặc-IP>:8080/api/sepay/webhook`
+   - Kiểu xác thực: **API Key** → nhập đúng chuỗi đã đặt ở bước 2 (SePay sẽ gửi
+     header `Authorization: Apikey <key>`).
+5. Xong! Người chơi vào **Nạp thẻ** → chọn gói → quét QR / CK đúng nội dung →
+   SePay gọi webhook → hệ thống tự cộng Xu. Xem đơn ở **Admin → Đơn nạp**.
+
+> Mẹo test nhanh không cần ngân hàng: gọi thử webhook bằng `curl` với đúng
+> `Apikey` và `content` = mã đơn (xem `README`/`docs` hoặc tab Đơn nạp).
+
+---
+
 ## 7. Cho người chơi kết nối từ máy khác (LAN/Internet)
 
 - Người chơi nhập **IP máy chủ của bạn** + cổng `30000` trong client

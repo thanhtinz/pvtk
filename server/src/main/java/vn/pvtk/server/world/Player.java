@@ -20,6 +20,7 @@ public final class Player {
     private volatile int level;
     private volatile int exp;
     private volatile int gold;
+    private volatile long coin; // in-game cash "Tiền nạp"
     private volatile int countryId;
     private volatile int mp;
     private volatile int maxMp;
@@ -239,12 +240,21 @@ public final class Player {
     }
 
     /** Seeds persistent progress loaded from the account on login. */
-    public void applyProgress(long gold, int level, int exp) {
+    public void applyProgress(long gold, int level, int exp, long coin) {
         this.gold = (int) Math.max(0, gold);
         this.level = Math.max(1, level);
         this.exp = Math.max(0, exp);
+        this.coin = Math.max(0, coin);
         this.maxHp = 1000 + (this.level - 1) * 100;
         this.hp = this.maxHp;
+    }
+
+    public long coin() {
+        return coin;
+    }
+
+    public void addCoin(long amount) {
+        this.coin = Math.max(0, this.coin + amount);
     }
 
     public void addGold(int amount) {

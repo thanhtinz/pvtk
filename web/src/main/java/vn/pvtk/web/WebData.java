@@ -66,14 +66,54 @@ public final class WebData {
         public boolean enabled = true;
     }
 
+    /** SePay (bank-transfer gateway) configuration, edited in the admin panel. */
+    public static final class SePayConfig {
+        public boolean enabled = false;
+        public String bankCode = "MBBank";       // SePay bank code (e.g. MBBank, VPBank, ...)
+        public String accountNumber = "";
+        public String accountHolder = "";
+        public String apiKey = "";               // shared secret for the webhook (Authorization: Apikey ...)
+        public String prefix = "PVTK";           // transfer-content prefix; the order code follows it
+        public int xuPerVnd = 0;                 // 0 => use package xu; else generic rate (xu per 1 VND)
+    }
+
+    /** A top-up package configured in the admin panel. */
+    public static final class Package {
+        public int id;
+        public String name = "";
+        public long priceVnd;                    // amount the player transfers
+        public long xu;                          // Xu credited to the web wallet
+        public long bonus;                       // bonus Xu
+        public boolean enabled = true;
+    }
+
+    /** A pending/paid top-up order. */
+    public static final class Order {
+        public long id;
+        public String code = "";                 // unique code embedded in the transfer content
+        public String user = "";
+        public int packageId;
+        public long amountVnd;
+        public long xu;
+        public String status = "pending";        // pending | paid | expired
+        public long createdAt;
+        public long paidAt;
+        public String ref = "";                  // SePay reference / bank txn id
+    }
+
     public static final class Root {
         public List<News> news = new ArrayList<>();
         public List<Giftcode> giftcodes = new ArrayList<>();
         public List<Product> products = new ArrayList<>();
         public List<Tx> transactions = new ArrayList<>();
+        public List<Package> packages = new ArrayList<>();
+        public List<Order> orders = new ArrayList<>();
+        public SePayConfig sepay = new SePayConfig();
         public int newsSeq = 1;
         public int productSeq = 1;
+        public int packageSeq = 1;
         public long txSeq = 1;
+        public long orderSeq = 1;
     }
 
     private final Path file;
@@ -115,6 +155,53 @@ public final class WebData {
         p.count = 1;
         p.price = 100;
         root.products.add(p);
+
+        long[][] packs = {{10000, 100, 0}, {20000, 200, 20}, {50000, 500, 75}, {100000, 1000, 200}, {500000, 5000, 1500}};
+        for (long[] pk : packs) {
+            Package gp = new Package();
+            gp.id = root.packageSeq++;
+            gp.priceVnd = pk[0];
+            gp.xu = pk[1];
+            gp.bonus = pk[2];
+            gp.name = (pk[0] / 1000) + "K → " + pk[1] + " Xu" + (pk[2] > 0 ? " (+" + pk[2] + ")" : "");
+            root.packages.add(gp);
+        }
+    }
+
+    public Package packageById(int id) {
+        return root.packages.stream().filter(x -> x.id == id).findFirst().orElse(null);
+    }
+
+    public synchronized Order createOrder(String user, Package pk, String code) {
+        Order o = new Order();
+        o.id = root.orderSeq++;
+        o.code = code;
+        o.user = user;
+        o.packageId = pk.id;
+        o.amountVnd = pk.priceVnd;
+        o.xu = pk.xu + pk.bonus;
+        o.createdAt = System.currentTimeMillis();
+        root.orders.add(0, o);
+        save();
+        return o;
+    }
+
+    public Order orderById(long id) {
+        return root.orders.stream().filter(o -> o.id == id).findFirst().orElse(null);
+    }
+
+    /** Finds the most recent pending order whose code appears in the transfer content. */
+    public Order findPendingByContent(String content) {
+        if (content == null) {
+            return null;
+        }
+        String c = content.toUpperCase().replaceAll("\\s+", "");
+        for (Order o : root.orders) {
+            if ("pending".equals(o.status) && !o.code.isBlank() && c.contains(o.code.toUpperCase())) {
+                return o;
+            }
+        }
+        return null;
     }
 
     public synchronized void save() {

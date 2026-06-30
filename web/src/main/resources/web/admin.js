@@ -269,6 +269,56 @@ const tabs = {
       ${transactions.length ? '' : '<tr><td colspan="5" class="muted">Chưa có giao dịch.</td></tr>'}</table></div>`;
   },
 
+  async sepay() {
+    const { sepay } = await api('/admin/sepay');
+    app().innerHTML = `<h2>Cổng nạp SePay</h2>
+      <div class="card" style="max-width:560px">
+        <p class="muted">SePay theo dõi biến động số dư ngân hàng và gọi webhook tới
+          <code>/api/sepay/webhook</code>. Khai báo URL này + Apikey trong trang quản trị SePay.</p>
+        <label><input type="checkbox" id="en" ${sepay.enabled ? 'checked' : ''} style="width:auto"> Bật cổng nạp</label>
+        <label>Mã ngân hàng (bankCode)</label><input id="bank" value="${esc(sepay.bankCode)}"/>
+        <label>Số tài khoản</label><input id="acc" value="${esc(sepay.accountNumber)}"/>
+        <label>Chủ tài khoản</label><input id="holder" value="${esc(sepay.accountHolder)}"/>
+        <label>Nội dung CK (prefix)</label><input id="prefix" value="${esc(sepay.prefix)}"/>
+        <label>Webhook API Key (Authorization: Apikey ...)</label><input id="key" value="${esc(sepay.apiKey)}"/>
+        <button class="btn" id="save" style="margin-top:14px">Lưu cấu hình</button>
+      </div>`;
+    document.getElementById('save').onclick = async () => {
+      await api('/admin/sepay', 'POST', {
+        enabled: document.getElementById('en').checked,
+        bankCode: document.getElementById('bank').value,
+        accountNumber: document.getElementById('acc').value,
+        accountHolder: document.getElementById('holder').value,
+        prefix: document.getElementById('prefix').value,
+        apiKey: document.getElementById('key').value,
+      });
+      toast('Đã lưu cấu hình SePay');
+    };
+  },
+
+  async packages() {
+    const { packages } = await api('/admin/packages');
+    app().innerHTML = `<h2>Gói nạp</h2><button class="btn" id="new">+ Thêm gói</button>
+      <div class="card" style="margin-top:12px"><table id="t"><tr>
+        <th>Tên</th><th>Giá (VND)</th><th>Xu</th><th>Bonus</th><th>Bật</th><th></th></tr>
+      ${packages.map(p => `<tr><td>${esc(p.name)}</td><td>${p.priceVnd.toLocaleString('vi')}</td>
+        <td>${p.xu}</td><td>${p.bonus}</td><td>${p.enabled ? '✅' : '❌'}</td>
+        <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
+    document.getElementById('new').onclick = () => packageDialog();
+    app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/packages/' + b.dataset.id, 'DELETE'); tabs.packages(); });
+  },
+
+  async orders() {
+    const { orders } = await api('/admin/orders');
+    app().innerHTML = `<h2>Đơn nạp</h2><div class="card"><table><tr>
+      <th>Mã</th><th>Tài khoản</th><th>Số tiền</th><th>Xu</th><th>Trạng thái</th><th>Thời gian</th></tr>
+      ${orders.map(o => `<tr><td><b>${esc(o.code)}</b></td><td>${esc(o.user)}</td>
+        <td>${o.amountVnd.toLocaleString('vi')}đ</td><td>${o.xu}</td>
+        <td><span class="tag ${o.status === 'paid' ? 'on' : 'off'}">${o.status}</span></td>
+        <td class="muted">${new Date(o.createdAt).toLocaleString('vi')}</td></tr>`).join('')}
+      ${orders.length ? '' : '<tr><td colspan="6" class="muted">Chưa có đơn.</td></tr>'}</table></div>`;
+  },
+
   async economy() {
     const e = await api('/admin/economy');
     app().innerHTML = `<h2>Kinh tế toàn server</h2><div class="grid cards">
@@ -336,6 +386,22 @@ function productDialog() {
     await api('/admin/products', 'POST', { name: document.getElementById('name').value, itemId: item.itemId,
       count: Number(document.getElementById('count').value), price: Number(document.getElementById('price').value) });
     toast('Đã lưu'); closeModal(); tabs.products();
+  };
+}
+
+function packageDialog() {
+  modal(`<h3>Thêm gói nạp</h3>
+    <label>Tên (để trống = tự đặt)</label><input id="name"/>
+    <label>Giá chuyển khoản (VND)</label><input id="price" type="number" value="10000"/>
+    <label>Xu nhận được</label><input id="xu" type="number" value="100"/>
+    <label>Xu thưởng</label><input id="bonus" type="number" value="0"/>
+    <div class="row" style="margin-top:14px"><button class="btn" id="ok">Lưu</button>
+      <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
+  document.getElementById('ok').onclick = async () => {
+    await api('/admin/packages', 'POST', { name: document.getElementById('name').value,
+      priceVnd: Number(document.getElementById('price').value), xu: Number(document.getElementById('xu').value),
+      bonus: Number(document.getElementById('bonus').value) });
+    toast('Đã lưu gói nạp'); closeModal(); tabs.packages();
   };
 }
 

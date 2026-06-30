@@ -103,6 +103,8 @@ public final class Opcodes {
     public static final int BATTLE_ENTER        = 12501; // turn battle: enter (EnterLocalBattle)
     public static final int BATTLE_PLAN         = 12503; // turn battle: submit round plan
     public static final int BATTLE_UPDATE       = 12508; // turn battle: round result / model
+    public static final int CURRENCY_INFO       = 11078; // server->client: gold / coin / xu balances
+    public static final int CONVERT_XU          = 11030; // client->server: convert web Xu -> in-game coin
 
     static {
         register(5000, "CHECK_EDITION_MSG");

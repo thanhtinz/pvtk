@@ -142,25 +142,29 @@ const views = {
     });
   },
 
-  topup() {
+  async topup() {
     if (!T.token) return showLogin(false);
-    app().innerHTML = `<div class="container"><h2>Nạp thẻ</h2>
-      <div class="card" style="max-width:460px">
-        <p class="muted">Chọn mệnh giá để nạp vào số dư (💎). Bản demo cộng trực tiếp.</p>
-        <div class="row" id="amts"></div>
-        <label>Hoặc nhập số tùy chọn</label><input id="amt" type="number" value="100"/>
-        <button class="btn" id="go" style="margin-top:14px">Nạp</button>
-      </div></div>`;
-    const amts = document.getElementById('amts');
-    [100, 200, 500, 1000, 5000].forEach(a => {
-      const b = el(`<button class="btn sec small">${a} 💎</button>`);
-      b.onclick = () => document.getElementById('amt').value = a;
-      amts.appendChild(b);
+    app().innerHTML = `<div class="container"><h2>Nạp Xu qua SePay (chuyển khoản ngân hàng)</h2>
+      <p class="muted">Chọn gói → quét QR / chuyển khoản đúng nội dung → hệ thống tự cộng Xu.
+        Vào game gõ lệnh <b>convert</b> (hoặc nút Đổi) để đổi <b>Xu → Tiền nạp</b> trong game.</p>
+      <div class="grid cards" id="packs"></div></div>`;
+    const { packages, sepay } = await api('/packages');
+    const g = document.getElementById('packs');
+    if (!sepay.enabled) {
+      g.innerHTML = '<div class="card">Cổng nạp SePay chưa được bật. Vui lòng liên hệ quản trị viên.</div>';
+      return;
+    }
+    if (!packages.length) g.innerHTML = '<div class="card muted">Chưa có gói nạp.</div>';
+    packages.forEach(p => {
+      const c = el(`<div class="card">
+        <h3>${esc(p.name)}</h3>
+        <div class="muted">${p.priceVnd.toLocaleString('vi')} đ</div>
+        <div style="font-size:22px;color:var(--gold);font-weight:800">${p.xu + p.bonus} Xu</div>
+        ${p.bonus ? `<div class="tag on">+${p.bonus} thưởng</div>` : ''}
+        <button class="btn small" style="margin-top:10px">Nạp gói này</button></div>`);
+      c.querySelector('button').onclick = () => startOrder(p.id);
+      g.appendChild(c);
     });
-    document.getElementById('go').onclick = async () => {
-      try { const r = await api('/topup', 'POST', { amount: Number(document.getElementById('amt').value) });
-        toast('Nạp thành công! Số dư: ' + r.balance + ' 💎'); } catch (e) { toast(e.message); }
-    };
   },
 
   giftcode() {
@@ -183,8 +187,10 @@ const views = {
       <div class="grid cards">
         <div class="card"><h3>Thông tin</h3>
           <p>Tài khoản: <b>${esc(me.username)}</b> ${me.role === 'ADMIN' ? '<span class="tag admin">ADMIN</span>' : ''}</p>
-          <p>Số dư: <b>${me.balance}</b> 💎</p>
+          <p>Số dư Xu (web): <b>${me.balance}</b> 💎</p>
+          <p>Tiền nạp trong game: <b>${me.coin ?? 0}</b></p>
           <p>Vàng trong game: <b>${me.gold}</b></p>
+          <p class="muted" style="font-size:13px">Đổi Xu → Tiền nạp: đăng nhập game và gõ lệnh <b>convert &lt;số xu&gt;</b>.</p>
           <p>Cấp độ: <b>${me.level}</b></p>
           <p>Trạng thái: ${me.online ? '<span class="tag on">Đang online</span>' : '<span class="tag off">Offline</span>'}</p>
         </div>
@@ -232,7 +238,40 @@ function tickCountdowns() {
   upd(); _cdTimer = setInterval(upd, 1000);
 }
 
+let _pollTimer = null;
+async function startOrder(packageId) {
+  try {
+    const o = await api('/topup/order', 'POST', { packageId });
+    modal(`
+      <h3>Chuyển khoản để nhận ${o.xu} Xu</h3>
+      <div style="text-align:center"><img src="${esc(o.qrUrl)}" alt="QR" style="width:230px;max-width:100%;background:#fff;border-radius:10px"/></div>
+      <table style="margin-top:10px">
+        <tr><th>Ngân hàng</th><td>${esc(o.bankCode)}</td></tr>
+        <tr><th>Số tài khoản</th><td><b>${esc(o.accountNumber)}</b></td></tr>
+        <tr><th>Chủ tài khoản</th><td>${esc(o.accountHolder)}</td></tr>
+        <tr><th>Số tiền</th><td><b>${o.amountVnd.toLocaleString('vi')} đ</b></td></tr>
+        <tr><th>Nội dung CK</th><td><b style="color:var(--gold)">${esc(o.content)}</b></td></tr>
+      </table>
+      <p class="muted" id="ost">⏳ Đang chờ thanh toán... (tự cộng Xu khi nhận được tiền)</p>
+      <div class="row"><button class="btn sec" onclick="stopPoll();closeModal()">Đóng</button></div>`);
+    if (_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = setInterval(async () => {
+      try {
+        const s = await api('/topup/order/' + o.orderId);
+        if (s.status === 'paid') {
+          stopPoll();
+          document.getElementById('ost').innerHTML = '✅ Đã nhận thanh toán! Số dư: <b>' + s.balance + ' Xu</b>';
+          toast('Nạp thành công +' + s.xu + ' Xu!');
+        }
+      } catch (e) { /* keep polling */ }
+    }, 3000);
+  } catch (e) { toast(e.message); }
+}
+function stopPoll() { if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; } }
+window.startOrder = startOrder; window.stopPoll = stopPoll;
+
 function router() {
+  stopPoll();
   const view = (location.hash || '#home').slice(1);
   setActive(view);
   (views[view] || views.home)();

@@ -568,6 +568,7 @@ public final class World {
             account.gold = p.gold();
             account.level = p.level();
             account.exp = p.exp();
+            account.coin = p.coin();
             accounts.save();
         }
         map.removePlayer(p.id());

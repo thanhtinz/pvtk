@@ -122,6 +122,15 @@ public final class WebServer {
             sendJson(ex, 200, Map.of("products", shopView()));
             return;
         }
+        if (p.equals("/packages") && m.equals("GET")) {
+            sendJson(ex, 200, packagesView());
+            return;
+        }
+        // SePay webhook — called by SePay's servers, authenticated by Apikey header.
+        if (p.equals("/sepay/webhook") && m.equals("POST")) {
+            sendJson(ex, 200, sepayWebhook(ex, body(ex)));
+            return;
+        }
         if (p.equals("/items") && m.equals("GET")) {
             requireUser(ex);
             sendJson(ex, 200, Map.of("items", searchItems(query(ex, "q"), 60)));
@@ -162,6 +171,20 @@ public final class WebServer {
             game.accounts().save();
             web.addTx(a.username, "topup", "Nạp " + amount + " 💎", amount, "balance", System.currentTimeMillis());
             sendJson(ex, 200, Map.of("balance", a.balance));
+            return;
+        }
+        if (p.equals("/topup/order") && m.equals("POST")) {
+            Account a = requireUser(ex);
+            sendJson(ex, 200, createTopupOrder(a, (int) num(body(ex), "packageId")));
+            return;
+        }
+        if (p.startsWith("/topup/order/") && m.equals("GET")) {
+            Account a = requireUser(ex);
+            var o = web.orderById(Long.parseLong(p.substring("/topup/order/".length())));
+            if (o == null || !o.user.equalsIgnoreCase(a.username)) {
+                throw new HttpError(404, "Order");
+            }
+            sendJson(ex, 200, Map.of("status", o.status, "xu", o.xu, "balance", a.balance));
             return;
         }
         if (p.equals("/giftcode") && m.equals("POST")) {
@@ -232,6 +255,22 @@ public final class WebServer {
                 }
                 sendJson(ex, 200, Map.of("ok", true, "online", game.sessions().onlineCount()));
             }
+            case "/sepay" -> {
+                if (m.equals("GET")) {
+                    sendJson(ex, 200, Map.of("sepay", web.root().sepay));
+                } else {
+                    sendJson(ex, 200, saveSepay(body(ex)));
+                }
+            }
+            case "/packages" -> {
+                if (m.equals("GET")) {
+                    sendJson(ex, 200, Map.of("packages", web.root().packages));
+                } else {
+                    sendJson(ex, 200, savePackage(body(ex)));
+                }
+            }
+            case "/orders" -> sendJson(ex, 200, Map.of("orders",
+                    web.root().orders.subList(0, Math.min(200, web.root().orders.size()))));
             case "/market" -> sendJson(ex, 200, Map.of("listings", game.world().market().view()));
             case "/market/remove" -> {
                 boolean ok = game.world().removeMarketListing((int) num(body(ex), "listingId"));
@@ -260,6 +299,11 @@ public final class WebServer {
                 } else if (p.startsWith("/products/") && m.equals("DELETE")) {
                     int id = Integer.parseInt(p.substring(10));
                     web.root().products.removeIf(pr -> pr.id == id);
+                    web.save();
+                    sendJson(ex, 200, Map.of("ok", true));
+                } else if (p.startsWith("/packages/") && m.equals("DELETE")) {
+                    int id = Integer.parseInt(p.substring(10));
+                    web.root().packages.removeIf(pk -> pk.id == id);
                     web.save();
                     sendJson(ex, 200, Map.of("ok", true));
                 } else {
@@ -324,6 +368,103 @@ public final class WebServer {
             }
         }
         throw new HttpError(404, "Sản phẩm không tồn tại");
+    }
+
+    // ---- SePay top-up ----
+
+    private Map<String, Object> packagesView() {
+        var s = web.root().sepay;
+        List<Map<String, Object>> pks = new ArrayList<>();
+        for (WebData.Package pk : web.root().packages) {
+            if (!pk.enabled) {
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", pk.id);
+            m.put("name", pk.name);
+            m.put("priceVnd", pk.priceVnd);
+            m.put("xu", pk.xu);
+            m.put("bonus", pk.bonus);
+            pks.add(m);
+        }
+        Map<String, Object> sepay = new LinkedHashMap<>();
+        sepay.put("enabled", s.enabled);
+        sepay.put("bankCode", s.bankCode);
+        sepay.put("accountNumber", s.accountNumber);
+        sepay.put("accountHolder", s.accountHolder);
+        return Map.of("packages", pks, "sepay", sepay);
+    }
+
+    private Map<String, Object> createTopupOrder(Account a, int packageId) {
+        var s = web.root().sepay;
+        WebData.Package pk = web.packageById(packageId);
+        if (pk == null || !pk.enabled) {
+            throw new HttpError(404, "Gói nạp không tồn tại");
+        }
+        if (!s.enabled || s.accountNumber.isBlank()) {
+            throw new HttpError(400, "Cổng nạp chưa được cấu hình. Liên hệ quản trị.");
+        }
+        String code = (s.prefix == null || s.prefix.isBlank() ? "PVTK" : s.prefix.toUpperCase())
+                + HexFormat.of().formatHex(randomBytes()).substring(0, 6).toUpperCase();
+        WebData.Order o = web.createOrder(a.username, pk, code);
+        String content = code; // the bank transfer description
+        String qr = "https://qr.sepay.vn/img?acc=" + enc(s.accountNumber) + "&bank=" + enc(s.bankCode)
+                + "&amount=" + o.amountVnd + "&des=" + enc(content);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("orderId", o.id);
+        m.put("code", code);
+        m.put("content", content);
+        m.put("amountVnd", o.amountVnd);
+        m.put("xu", o.xu);
+        m.put("bankCode", s.bankCode);
+        m.put("accountNumber", s.accountNumber);
+        m.put("accountHolder", s.accountHolder);
+        m.put("qrUrl", qr);
+        return m;
+    }
+
+    /** Handles SePay's incoming-transfer webhook: authenticates, matches the order, credits Xu. */
+    private Map<String, Object> sepayWebhook(HttpExchange ex, Map<String, Object> b) {
+        var s = web.root().sepay;
+        if (s.apiKey != null && !s.apiKey.isBlank()) {
+            String auth = ex.getRequestHeaders().getFirst("Authorization");
+            if (auth == null || !auth.equals("Apikey " + s.apiKey)) {
+                throw new HttpError(401, "Invalid api key");
+            }
+        }
+        String type = str(b, "transferType");
+        if (!type.isBlank() && !type.equalsIgnoreCase("in")) {
+            return Map.of("success", true, "ignored", "not an incoming transfer");
+        }
+        String content = str(b, "content");
+        if (content.isBlank()) {
+            content = str(b, "description");
+        }
+        long amount = toLong(b.get("transferAmount"));
+        WebData.Order o = web.findPendingByContent(content);
+        if (o == null) {
+            return Map.of("success", true, "matched", false);
+        }
+        if (amount > 0 && amount < o.amountVnd) {
+            return Map.of("success", true, "matched", false, "reason", "amount too low");
+        }
+        Account a = game.accounts().get(o.user);
+        if (a == null) {
+            return Map.of("success", true, "matched", false, "reason", "user gone");
+        }
+        a.balance += o.xu;
+        o.status = "paid";
+        o.paidAt = System.currentTimeMillis();
+        o.ref = str(b, "referenceCode").isBlank() ? str(b, "id") : str(b, "referenceCode");
+        game.accounts().save();
+        web.save();
+        web.addTx(o.user, "topup", "SePay nạp " + o.amountVnd + "đ → " + o.xu + " Xu", o.xu, "balance",
+                o.paidAt);
+        return Map.of("success", true, "matched", true, "xu", o.xu);
+    }
+
+    private static String enc(String v) {
+        return java.net.URLEncoder.encode(v == null ? "" : v, StandardCharsets.UTF_8);
     }
 
     /** Adds gold to a live player if online, else to the persisted account. */
@@ -429,6 +570,47 @@ public final class WebServer {
         }
         web.save();
         return Map.of("ok", true, "code", g.code);
+    }
+
+    private Map<String, Object> saveSepay(Map<String, Object> b) {
+        var s = web.root().sepay;
+        s.enabled = Boolean.parseBoolean(String.valueOf(b.getOrDefault("enabled", s.enabled)));
+        s.bankCode = orKeep(str(b, "bankCode"), s.bankCode);
+        s.accountNumber = orKeep(str(b, "accountNumber"), s.accountNumber);
+        s.accountHolder = orKeep(str(b, "accountHolder"), s.accountHolder);
+        s.apiKey = b.containsKey("apiKey") ? str(b, "apiKey") : s.apiKey;
+        s.prefix = orKeep(str(b, "prefix"), s.prefix);
+        web.save();
+        return Map.of("ok", true);
+    }
+
+    private static String orKeep(String v, String cur) {
+        return v == null || v.isBlank() ? cur : v;
+    }
+
+    private Map<String, Object> savePackage(Map<String, Object> b) {
+        WebData.Package pk = new WebData.Package();
+        Object idv = b.get("id");
+        if (idv != null && toLong(idv) > 0) {
+            pk = web.packageById((int) toLong(idv));
+            if (pk == null) {
+                pk = new WebData.Package();
+            }
+        }
+        if (pk.id == 0) {
+            pk.id = web.root().packageSeq++;
+            web.root().packages.add(pk);
+        }
+        pk.name = str(b, "name");
+        pk.priceVnd = num(b, "priceVnd");
+        pk.xu = num(b, "xu");
+        pk.bonus = num(b, "bonus");
+        pk.enabled = b.get("enabled") == null || Boolean.parseBoolean(String.valueOf(b.get("enabled")));
+        if (pk.name.isBlank()) {
+            pk.name = (pk.priceVnd / 1000) + "K → " + pk.xu + " Xu";
+        }
+        web.save();
+        return Map.of("ok", true, "id", pk.id);
     }
 
     private Map<String, Object> saveProduct(Map<String, Object> b) {
@@ -614,6 +796,7 @@ public final class WebServer {
         m.put("username", a.username);
         m.put("role", a.role);
         m.put("balance", a.balance);
+        m.put("coin", a.coin);
         m.put("gold", a.gold);
         m.put("level", a.level);
         m.put("online", game.world().findByName(a.username) != null);

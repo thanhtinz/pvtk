@@ -128,10 +128,12 @@ public final class PvtkGame extends ApplicationAdapter {
         }
         font.setColor(Color.LIGHT_GRAY);
         font.draw(batch, "PVTK  " + status
-                        + "   gold=" + client.state().inventory().gold()
+                        + "   gold=" + client.state().gold()
+                        + "  tiền nạp=" + client.state().coin()
+                        + "  xu=" + client.state().xu()
                         + "  items=" + client.state().inventory().bag().size(),
                 8, Gdx.graphics.getHeight() - 8);
-        font.draw(batch, "tap monster = attack   tap ground = move", 8, Gdx.graphics.getHeight() - 26);
+        font.draw(batch, "tap monster = battle   tap ground = move", 8, Gdx.graphics.getHeight() - 26);
 
         int y = 8 + chatLog.size() * 16;
         font.setColor(Color.CYAN);

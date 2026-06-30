@@ -16,6 +16,16 @@ public final class GameState {
     private final Map<Integer, Entity> others = new ConcurrentHashMap<>();
     private final InventoryView inventory = new InventoryView();
     private volatile vn.pvtk.protocol.message.Messages.BattleUpdate battle;
+    private volatile long gold;
+    private volatile long coin; // Tiền nạp
+    private volatile long xu;   // web wallet
+
+    public long gold() { return gold; }
+    public long coin() { return coin; }
+    public long xu() { return xu; }
+    public void setCurrency(long gold, long coin, long xu) {
+        this.gold = gold; this.coin = coin; this.xu = xu;
+    }
 
     /** The current turn-battle state, or null if not in a battle. */
     public vn.pvtk.protocol.message.Messages.BattleUpdate battle() {

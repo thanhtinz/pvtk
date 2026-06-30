@@ -187,6 +187,11 @@ public final class GameClient implements ConnectionListener {
         connection.send(new vn.pvtk.protocol.message.Messages.BattlePlan(round, targetIndex, skillId).toPacket());
     }
 
+    /** Convert web Xu into in-game coin ("Tiền nạp"). */
+    public void convertXu(long amount) {
+        connection.send(new vn.pvtk.protocol.message.Messages.ConvertXu(amount).toPacket());
+    }
+
     // --- Quests ---
     public void requestQuests() {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.QUEST_LIST).putShort(0));
@@ -307,6 +312,11 @@ public final class GameClient implements ConnectionListener {
                 var bu = vn.pvtk.protocol.message.Messages.BattleUpdate.from(p);
                 state.setBattle(bu);
                 listener.onBattleUpdate(bu);
+            }
+            case Opcodes.CURRENCY_INFO -> {
+                var ci = vn.pvtk.protocol.message.Messages.CurrencyInfo.from(p);
+                state.setCurrency(ci.gold(), ci.coin(), ci.xu());
+                listener.onCurrency(ci.gold(), ci.coin(), ci.xu());
             }
             default -> { /* opcode not yet implemented in this rewrite */ }
         }

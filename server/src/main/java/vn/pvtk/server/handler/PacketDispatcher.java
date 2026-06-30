@@ -87,6 +87,7 @@ public final class PacketDispatcher {
         BattleHandler battle = new BattleHandler();
         register(Opcodes.BATTLE_ENTER, battle);
         register(Opcodes.BATTLE_PLAN, battle);
+        register(Opcodes.CONVERT_XU, new ConvertHandler());
     }
 
     public void register(int opcode, PacketHandler handler) {

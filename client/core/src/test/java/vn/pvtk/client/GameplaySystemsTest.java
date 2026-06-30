@@ -512,6 +512,27 @@ class GameplaySystemsTest {
     }
 
     @Test
+    void convertXuToCoinInGame() throws Exception {
+        AtomicReference<long[]> cur = new AtomicReference<>(); // [gold, coin, xu]
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onCurrency(long gold, long coin, long xu) {
+                cur.set(new long[]{gold, coin, xu});
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("NapThu", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+        // Grant some web Xu directly on the shared account (as if topped up via SePay).
+        var acc = server.accounts().get("NapThu");
+        acc.balance = 150;
+        // Convert 100 Xu -> 100 coin in game.
+        c.convertXu(100);
+        assertTrue(await(() -> cur.get() != null && cur.get()[1] == 100 && cur.get()[2] == 50),
+                "after converting, coin=100 and xu=50");
+        c.disconnect();
+    }
+
+    @Test
     void escortCompletesOnArrival() throws Exception {
         AtomicReference<EscortStatus> esc = new AtomicReference<>();
         GameClient c = new GameClient(new GameClientListener() {

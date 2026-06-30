@@ -14,7 +14,8 @@ public final class Account {
     public String role = "USER";   // USER | ADMIN
     public boolean banned = false;
 
-    public long balance = 0;       // web wallet (from top-ups), for the webshop
+    public long balance = 0;       // web wallet "Xu" (from SePay top-ups), spends on the webshop
+    public long coin = 0;          // in-game cash "Tiền nạp" (exchanged from Xu inside the game)
     public long gold = 100;        // persistent in-game gold
     public int level = 1;
     public int exp = 0;

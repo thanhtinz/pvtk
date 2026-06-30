@@ -98,6 +98,10 @@ public interface GameClientListener {
     default void onBattleUpdate(BattleUpdate battle) {
     }
 
+    /** Currency balances changed (gold / coin "Tiền nạp" / xu). */
+    default void onCurrency(long gold, long coin, long xu) {
+    }
+
     default void onDisconnected(String reason) {
     }
 }

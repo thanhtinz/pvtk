@@ -31,6 +31,10 @@ from the legacy client and re-implemented in clean Java 21.
 - 🎨 **Decoded sprites** — the original `.fr` frame format is parsed
   (`SpriteSheet`); the `:tools` exporter slices the real sheets into 1754 frame
   PNGs and the libGDX client renders real game sprites for entities.
+- 💳 **SePay top-up** — bank-transfer payments via SePay: configurable in admin
+  (bank/account/webhook key) with admin-managed top-up packages. Players buy
+  **Xu** on the web, then convert **Xu → in-game cash ("Tiền nạp")** inside the
+  game (`convert` command / `CONVERT_XU`).
 - 🌐 **Website + admin panel** — landing page, top-up, webshop, leaderboard,
   profile (change password), giftcodes and news for players; a full admin panel
   to manage users, economy, items (with icons + search + multi-select), giftcodes,

@@ -57,8 +57,8 @@ public final class LoginHandler implements PacketHandler {
         inventory.add(2, 1);
         inventory.add(3, 1);
         Player player = new Player(req.username(), start.mapId(), start.spawnX(), start.spawnY(), inventory);
-        // Restore persistent progress (gold/level/exp) from the account.
-        player.applyProgress(account.gold, account.level, account.exp);
+        // Restore persistent progress (gold/level/exp/coin) from the account.
+        player.applyProgress(account.gold, account.level, account.exp, account.coin);
         // Grant the first few skills from skill.txt as starters.
         ctx.gameData().skills().keySet().stream().sorted().limit(3).forEach(player::learnSkill);
         session.bindPlayer(player);
@@ -83,6 +83,8 @@ public final class LoginHandler implements PacketHandler {
             }
         }
         session.send(new vn.pvtk.protocol.message.Messages.SkillList(skills).toPacket());
+        // 6) Send currency balances (gold / coin / xu).
+        ConvertHandler.sendCurrency(session, account, player);
 
         log.info("Login OK: {} from {} on line {}", req.username(), session.remoteAddress(), req.serverLine());
     }

@@ -972,6 +972,32 @@ public final class Messages {
         }
     }
 
+    // ==================================================================
+    // Currency: gold (in-game), coin ("Tiền nạp"), xu (web wallet)
+    // (CURRENCY_INFO 11078 server->client, CONVERT_XU 11030 client->server)
+    // ==================================================================
+
+    public record CurrencyInfo(long gold, long coin, long xu) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.CURRENCY_INFO).putLong(gold).putLong(coin).putLong(xu);
+        }
+
+        public static CurrencyInfo from(Packet p) {
+            return new CurrencyInfo(p.getLong(), p.getLong(), p.getLong());
+        }
+    }
+
+    /** Client→server: convert {@code amount} of web Xu into in-game coin (rate applied server-side). */
+    public record ConvertXu(long amount) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.CONVERT_XU).putLong(amount);
+        }
+
+        public static ConvertXu from(Packet p) {
+            return new ConvertXu(p.getLong());
+        }
+    }
+
     /** roundState: 0 ongoing, 1 win, 2 lose, 3 error. */
     public record BattleUpdate(int battleId, int round, int roundState,
                                List<Combatant> combatants, List<BattleAction> actions,
