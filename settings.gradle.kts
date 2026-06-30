@@ -20,6 +20,7 @@ include(":server")          // Authoritative Netty game server
 
 // --- Cross-platform client (one game, many launchers — the libGDX layout) ---
 // client/core    : networking + game model (pure JVM, no GPU)
+// client/java    : headless / console client (PC, pure Java, no GPU)
 // client/game    : shared libGDX game (rendering + input), depends on client/core
 // client/desktop : PC launcher (Windows / macOS / Linux via LWJGL3)
 // client/android : Android launcher (requires the Android SDK)
@@ -28,6 +29,7 @@ include(":server")          // Authoritative Netty game server
 // Desktop builds anywhere. Android/iOS activate only when their SDKs are present,
 // so CI on a bare JDK stays green.
 include(":client:core")
+include(":client:java")     // headless / console client (PC, pure Java)
 include(":client:game")
 include(":client:desktop")
 

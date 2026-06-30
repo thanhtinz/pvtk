@@ -32,6 +32,7 @@ from the legacy client and re-implemented in clean Java 21.
 | `server` | Authoritative game server | Netty |
 | `client/core` | Platform-neutral `GameClient` + `GameState` | bare JDK |
 | `client/game` | Shared libGDX game (render + input) | libGDX |
+| `client/java` | **Java** headless / console client (no GPU) | bare JDK |
 | `client/desktop` | **PC** launcher (Windows/macOS/Linux) | LWJGL3 |
 | `client/android` | **Android** launcher | Android SDK |
 | `client/ios` | **iOS** launcher | RoboVM (macOS) |
@@ -74,6 +75,13 @@ PVTK_PORT=30000 ./gradlew :server:run
 
 Click/tap a tile to move; other players and world chat appear live. Open a second
 window with `--user Bob` and watch them see each other move and chat in real time.
+
+You can also drive the game from the headless **Java console client** (no GPU):
+
+```bash
+./gradlew :client:java:run --args="--host 127.0.0.1 --port 30000 --user Alice"
+# commands:  m <x> <y>   move      s <text>   say (world)   who   quit
+```
 
 ### 4. Android
 
