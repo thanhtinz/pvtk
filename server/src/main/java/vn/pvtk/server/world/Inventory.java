@@ -50,6 +50,29 @@ public final class Inventory {
         return -1;
     }
 
+    /** Item id in a bag slot, or 0 if empty. */
+    public int itemAt(int slot) {
+        return slot >= 0 && slot < BAG_SIZE ? bagItem[slot] : 0;
+    }
+
+    public int countAt(int slot) {
+        return slot >= 0 && slot < BAG_SIZE ? bagCount[slot] : 0;
+    }
+
+    /** Removes up to {@code count} from a bag slot; returns the amount actually removed. */
+    public int remove(int slot, int count) {
+        if (slot < 0 || slot >= BAG_SIZE || bagItem[slot] == 0) {
+            return 0;
+        }
+        int removed = Math.min(count, bagCount[slot]);
+        bagCount[slot] -= removed;
+        if (bagCount[slot] <= 0) {
+            bagItem[slot] = 0;
+            bagCount[slot] = 0;
+        }
+        return removed;
+    }
+
     /** Equips the item in bag slot {@code slot}; swaps with whatever is in that gear slot. */
     public boolean equip(int slot) {
         if (slot < 0 || slot >= BAG_SIZE || bagItem[slot] == 0) {

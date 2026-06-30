@@ -85,7 +85,47 @@ public final class GameClient implements ConnectionListener {
 
     // --- Combat ---
     public void attack(int targetId) {
-        connection.send(new vn.pvtk.protocol.message.Messages.AttackRequest(targetId, 0).toPacket());
+        attack(targetId, 0);
+    }
+
+    public void attack(int targetId, int skillId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.AttackRequest(targetId, skillId).toPacket());
+    }
+
+    // --- Shop ---
+    public void openShop(int shopId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.ShopOpen(shopId).toPacket());
+    }
+
+    public void buy(int itemId, int count) {
+        connection.send(new vn.pvtk.protocol.message.Messages.ShopBuy(itemId, count).toPacket());
+    }
+
+    public void sell(int bagSlot, int count) {
+        connection.send(new vn.pvtk.protocol.message.Messages.ShopSell(bagSlot, count).toPacket());
+    }
+
+    // --- Skills ---
+    public void requestSkills() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.SKILL_LIST).putShort(0));
+    }
+
+    // --- Party / team ---
+    public void inviteToTeam(String playerName) {
+        connection.send(new vn.pvtk.protocol.message.Messages.TeamInvite(playerName).toPacket());
+    }
+
+    public void leaveTeam() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.TEAM_LEAVE));
+    }
+
+    // --- Mail ---
+    public void sendMail(String toName, String subject, String body, int gold) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MailSend(toName, subject, body, gold).toPacket());
+    }
+
+    public void requestMail() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.MAIL_LIST).putShort(0));
     }
 
     // --- Country / guild ---
@@ -138,6 +178,14 @@ public final class GameClient implements ConnectionListener {
             case Opcodes.COUNTRY_CREATE, Opcodes.COUNTRY_INFO,
                  Opcodes.COUNTRY_JOIN, Opcodes.COUNTRY_LEAVE ->
                     listener.onCountryResult(op, vn.pvtk.protocol.message.Messages.CountryActionResult.from(p));
+            case Opcodes.SHOP_LIST -> listener.onShopListing(
+                    vn.pvtk.protocol.message.Messages.ShopListing.from(p));
+            case Opcodes.SKILL_LIST -> listener.onSkillList(
+                    vn.pvtk.protocol.message.Messages.SkillList.from(p));
+            case Opcodes.TEAM_UPDATE -> listener.onTeamUpdate(
+                    vn.pvtk.protocol.message.Messages.TeamUpdate.from(p));
+            case Opcodes.MAIL_LIST -> listener.onMailList(
+                    vn.pvtk.protocol.message.Messages.MailList.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

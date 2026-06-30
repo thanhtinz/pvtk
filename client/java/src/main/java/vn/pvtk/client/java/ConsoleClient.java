@@ -69,6 +69,24 @@ public final class ConsoleClient {
                 l.countries().forEach(c -> System.out.println("  #" + c.id() + " " + c.name()
                         + " (vua " + c.kingName() + ", " + c.memberCount() + " members)"));
             }
+            @Override public void onShopListing(vn.pvtk.protocol.message.Messages.ShopListing l) {
+                System.out.println("[shop #" + l.shopId() + "] " + l.entries().size() + " món:");
+                l.entries().forEach(e -> System.out.println("  item " + e.itemId() + " " + e.name()
+                        + " - " + e.price() + " vàng"));
+            }
+            @Override public void onSkillList(vn.pvtk.protocol.message.Messages.SkillList s) {
+                System.out.println("[skills] " + s.skills().stream()
+                        .map(x -> x.id() + ":" + x.name() + "(mp" + x.useMp() + ")").toList());
+            }
+            @Override public void onTeamUpdate(vn.pvtk.protocol.message.Messages.TeamUpdate t) {
+                System.out.println("[team] leader=" + t.leaderId() + " members="
+                        + t.members().stream().map(m -> m.name()).toList());
+            }
+            @Override public void onMailList(vn.pvtk.protocol.message.Messages.MailList m) {
+                System.out.println("[mail] " + m.mails().size() + " thư:");
+                m.mails().forEach(x -> System.out.println("  #" + x.id() + " từ " + x.fromName()
+                        + ": " + x.subject() + " (" + x.gold() + " vàng)"));
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -130,6 +148,41 @@ public final class ConsoleClient {
                     }
                 }
                 case "country" -> handleCountry(client, t.length > 1 ? t[1] : "");
+                case "shop" -> client.openShop(t.length > 1 ? Integer.parseInt(t[1].trim()) : 1);
+                case "buy" -> {
+                    String[] a = t.length > 1 ? t[1].split("\\s+") : new String[0];
+                    if (a.length >= 1) {
+                        client.buy(Integer.parseInt(a[0]), a.length > 1 ? Integer.parseInt(a[1]) : 1);
+                    } else {
+                        System.out.println("usage: buy <itemId> [count]");
+                    }
+                }
+                case "sell" -> {
+                    String[] a = t.length > 1 ? t[1].split("\\s+") : new String[0];
+                    if (a.length >= 1) {
+                        client.sell(Integer.parseInt(a[0]), a.length > 1 ? Integer.parseInt(a[1]) : 1);
+                    } else {
+                        System.out.println("usage: sell <bagSlot> [count]");
+                    }
+                }
+                case "skills" -> client.requestSkills();
+                case "party" -> {
+                    if (t.length > 1) {
+                        client.inviteToTeam(t[1].trim());
+                    } else {
+                        System.out.println("usage: party <playerName>   (leaveparty to leave)");
+                    }
+                }
+                case "leaveparty" -> client.leaveTeam();
+                case "mail" -> client.requestMail();
+                case "sendmail" -> {
+                    String[] a = t.length > 1 ? t[1].split("\\s+", 2) : new String[0];
+                    if (a.length == 2) {
+                        client.sendMail(a[0], "Thư", a[1], 0);
+                    } else {
+                        System.out.println("usage: sendmail <toName> <message>");
+                    }
+                }
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -168,8 +221,12 @@ public final class ConsoleClient {
         System.out.println("  m <x> <y>            move          s <text>     say (world)");
         System.out.println("  jump <mapId>         change map     who          list entities");
         System.out.println("  bag                  inventory      eq <slot>    equip item");
-        System.out.println("  atk <targetId>       attack         quit         exit");
+        System.out.println("  atk <targetId>       attack         skills       list skills");
+        System.out.println("  shop [id]            open shop      buy <itemId> [n] | sell <slot> [n]");
+        System.out.println("  party <name>         invite         leaveparty   leave party");
+        System.out.println("  mail                 inbox          sendmail <to> <msg>");
         System.out.println("  country create <name> | list | join <id> | leave | info");
+        System.out.println("  quit");
     }
 
     private static String arg(String[] args, String key, String def) {

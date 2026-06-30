@@ -72,6 +72,15 @@ public final class Opcodes {
     public static final int COUNTRY_LIST        = 15004; // guild/nation: list
     public static final int COUNTRY_JOIN        = 15011; // guild/nation: apply/join
     public static final int COUNTRY_LEAVE       = 15015; // guild/nation: leave
+    public static final int SHOP_LIST           = 12020; // NPC shop: open / listing
+    public static final int SHOP_BUY            = 12021; // NPC shop: buy
+    public static final int SHOP_SELL           = 16001; // NPC shop: sell
+    public static final int SKILL_LIST          = 14001; // skills the player knows
+    public static final int TEAM_INVITE         = 13501; // party: invite / accept
+    public static final int TEAM_UPDATE         = 13506; // party: roster update
+    public static final int TEAM_LEAVE          = 13507; // party: leave
+    public static final int MAIL_SEND           = 11009; // mail: send
+    public static final int MAIL_LIST           = 11007; // mail: mailbox list
 
     static {
         register(5000, "CHECK_EDITION_MSG");

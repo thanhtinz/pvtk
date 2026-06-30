@@ -52,6 +52,8 @@ public final class LoginHandler implements PacketHandler {
         inventory.add(2, 1);
         inventory.add(3, 1);
         Player player = new Player(req.username(), start.mapId(), start.spawnX(), start.spawnY(), inventory);
+        // Grant the first few skills from skill.txt as starters.
+        ctx.gameData().skills().keySet().stream().sorted().limit(3).forEach(player::learnSkill);
         session.bindPlayer(player);
         ctx.sessions().onAuthenticated(session);
 
@@ -64,6 +66,16 @@ public final class LoginHandler implements PacketHandler {
         // 4) Send the initial inventory snapshot.
         session.send(new vn.pvtk.protocol.message.Messages.BagSnapshot(
                 player.gold(), inventory.bagStacks(), inventory.equipmentStacks()).toPacket());
+        // 5) Send the player's known skills.
+        java.util.List<vn.pvtk.protocol.message.Messages.SkillEntry> skills = new java.util.ArrayList<>();
+        for (int skillId : player.learnedSkills()) {
+            var def = ctx.gameData().skill(skillId);
+            if (def != null) {
+                skills.add(new vn.pvtk.protocol.message.Messages.SkillEntry(
+                        def.id(), def.level(), def.name(), def.useMp()));
+            }
+        }
+        session.send(new vn.pvtk.protocol.message.Messages.SkillList(skills).toPacket());
 
         log.info("Login OK: {} from {} on line {}", req.username(), session.remoteAddress(), req.serverLine());
     }

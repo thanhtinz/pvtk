@@ -39,7 +39,14 @@ public final class ChatHandler implements PacketHandler {
                     session.send(packetOut); // not in a country: echo to self only
                 }
             }
-            case MAP, TEAM ->
+            case TEAM -> {
+                if (from.teamId() != 0) {
+                    ctx.world().broadcastToTeam(from.teamId(), packetOut);
+                } else {
+                    session.send(packetOut);
+                }
+            }
+            case MAP ->
                 ctx.world().broadcastToMap(ctx.world().map(from.mapId()), packetOut, -1);
             case PRIVATE -> {
                 // target is the recipient's name; resolve by scanning online players

@@ -399,4 +399,192 @@ public final class Messages {
             return new JumpMap(p.getUShort());
         }
     }
+
+    // ==================================================================
+    // NPC shop (SHOP_LIST 12020, SHOP_BUY 12021, SHOP_SELL 16001)
+    // ==================================================================
+
+    public record ShopEntry(int itemId, String name, int price, int type, int icon) {
+        public void write(Packet p) {
+            p.putInt(itemId).putString(name).putInt(price).putByte(type).putInt(icon);
+        }
+
+        public static ShopEntry read(Packet p) {
+            return new ShopEntry(p.getInt(), p.getString(), p.getInt(), p.getUByte(), p.getInt());
+        }
+    }
+
+    public record ShopOpen(int shopId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.SHOP_LIST).putInt(shopId);
+        }
+
+        public static ShopOpen from(Packet p) {
+            return new ShopOpen(p.getInt());
+        }
+    }
+
+    public record ShopListing(int shopId, List<ShopEntry> entries) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.SHOP_LIST).putInt(shopId).putShort(entries.size());
+            for (ShopEntry e : entries) {
+                e.write(p);
+            }
+            return p;
+        }
+
+        public static ShopListing from(Packet p) {
+            int shopId = p.getInt();
+            int n = p.getUShort();
+            List<ShopEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(ShopEntry.read(p));
+            }
+            return new ShopListing(shopId, list);
+        }
+    }
+
+    public record ShopBuy(int itemId, int count) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.SHOP_BUY).putInt(itemId).putShort(count);
+        }
+
+        public static ShopBuy from(Packet p) {
+            return new ShopBuy(p.getInt(), p.getUShort());
+        }
+    }
+
+    public record ShopSell(int bagSlot, int count) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.SHOP_SELL).putShort(bagSlot).putShort(count);
+        }
+
+        public static ShopSell from(Packet p) {
+            return new ShopSell(p.getUShort(), p.getUShort());
+        }
+    }
+
+    // ==================================================================
+    // Skills (SKILL_LIST = 14001)
+    // ==================================================================
+
+    public record SkillEntry(int id, int level, String name, int useMp) {
+        public void write(Packet p) {
+            p.putInt(id).putShort(level).putString(name).putShort(useMp);
+        }
+
+        public static SkillEntry read(Packet p) {
+            return new SkillEntry(p.getInt(), p.getUShort(), p.getString(), p.getUShort());
+        }
+    }
+
+    public record SkillList(List<SkillEntry> skills) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.SKILL_LIST).putShort(skills.size());
+            for (SkillEntry s : skills) {
+                s.write(p);
+            }
+            return p;
+        }
+
+        public static SkillList from(Packet p) {
+            int n = p.getUShort();
+            List<SkillEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(SkillEntry.read(p));
+            }
+            return new SkillList(list);
+        }
+    }
+
+    // ==================================================================
+    // Party / team (13501 invite, 13506 update, 13507 leave)
+    // ==================================================================
+
+    public record TeamMember(int id, String name, int level, int hp, int maxHp) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putShort(level).putInt(hp).putInt(maxHp);
+        }
+
+        public static TeamMember read(Packet p) {
+            return new TeamMember(p.getInt(), p.getString(), p.getUShort(), p.getInt(), p.getInt());
+        }
+    }
+
+    public record TeamInvite(String targetName) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.TEAM_INVITE).putString(targetName);
+        }
+
+        public static TeamInvite from(Packet p) {
+            return new TeamInvite(p.getString());
+        }
+    }
+
+    /** Server→client party roster (empty list means "you have no team"). */
+    public record TeamUpdate(int leaderId, List<TeamMember> members) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.TEAM_UPDATE).putInt(leaderId).putShort(members.size());
+            for (TeamMember m : members) {
+                m.write(p);
+            }
+            return p;
+        }
+
+        public static TeamUpdate from(Packet p) {
+            int leader = p.getInt();
+            int n = p.getUShort();
+            List<TeamMember> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(TeamMember.read(p));
+            }
+            return new TeamUpdate(leader, list);
+        }
+    }
+
+    // ==================================================================
+    // Mail (MAIL_SEND = 11009, MAIL_LIST = 11007)
+    // ==================================================================
+
+    public record MailSend(String toName, String subject, String body, int gold) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.MAIL_SEND)
+                    .putString(toName).putString(subject).putString(body).putInt(gold);
+        }
+
+        public static MailSend from(Packet p) {
+            return new MailSend(p.getString(), p.getString(), p.getString(), p.getInt());
+        }
+    }
+
+    public record MailEntry(int id, String fromName, String subject, String body, int gold, boolean claimed) {
+        public void write(Packet p) {
+            p.putInt(id).putString(fromName).putString(subject).putString(body)
+                    .putInt(gold).putBool(claimed);
+        }
+
+        public static MailEntry read(Packet p) {
+            return new MailEntry(p.getInt(), p.getString(), p.getString(), p.getString(),
+                    p.getInt(), p.getBool());
+        }
+    }
+
+    public record MailList(List<MailEntry> mails) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.MAIL_LIST).putShort(mails.size());
+            for (MailEntry m : mails) {
+                m.write(p);
+            }
+            return p;
+        }
+
+        public static MailList from(Packet p) {
+            int n = p.getUShort();
+            List<MailEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(MailEntry.read(p));
+            }
+            return new MailList(list);
+        }
+    }
 }

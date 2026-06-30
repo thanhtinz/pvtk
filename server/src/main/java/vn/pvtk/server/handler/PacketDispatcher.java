@@ -36,6 +36,20 @@ public final class PacketDispatcher {
         register(Opcodes.COUNTRY_INFO, country);
         register(Opcodes.COUNTRY_JOIN, country);
         register(Opcodes.COUNTRY_LEAVE, country);
+
+        ShopHandler shop = new ShopHandler();
+        register(Opcodes.SHOP_LIST, shop);
+        register(Opcodes.SHOP_BUY, shop);
+        register(Opcodes.SHOP_SELL, shop);
+        register(Opcodes.SKILL_LIST, new SkillHandler());
+
+        TeamHandler team = new TeamHandler();
+        register(Opcodes.TEAM_INVITE, team);
+        register(Opcodes.TEAM_LEAVE, team);
+
+        MailHandler mail = new MailHandler();
+        register(Opcodes.MAIL_SEND, mail);
+        register(Opcodes.MAIL_LIST, mail);
     }
 
     public void register(int opcode, PacketHandler handler) {

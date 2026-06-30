@@ -11,6 +11,10 @@ import org.junit.jupiter.api.Test;
 import vn.pvtk.protocol.message.Messages.CombatEvent;
 import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
+import vn.pvtk.protocol.message.Messages.MailList;
+import vn.pvtk.protocol.message.Messages.ShopListing;
+import vn.pvtk.protocol.message.Messages.SkillList;
+import vn.pvtk.protocol.message.Messages.TeamUpdate;
 import vn.pvtk.client.model.Entity;
 import vn.pvtk.server.GameServer;
 import vn.pvtk.server.ServerConfig;
@@ -117,6 +121,95 @@ class GameplaySystemsTest {
         assertTrue(await(() -> bJoin.get() != null && bJoin.get().ok()), "B should join");
         assertTrue(bJoin.get().country().memberCount() >= 2, "country should have >= 2 members");
 
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void shopListingSellRaisesGold() throws Exception {
+        AtomicReference<ShopListing> listing = new AtomicReference<>();
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onShopListing(ShopListing l) {
+                listing.set(l);
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("Buon", "", 0);
+        assertTrue(await(() -> c.state().inventory().bag().size() == 3), "starter bag");
+
+        c.openShop(1);
+        assertTrue(await(() -> listing.get() != null && !listing.get().entries().isEmpty()),
+                "shop 1 should have offers from shop.txt");
+
+        int goldBefore = c.state().inventory().gold();
+        c.sell(0, 1); // sell the first starter item
+        assertTrue(await(() -> c.state().inventory().bag().size() == 2), "bag should shrink after sell");
+        assertTrue(await(() -> c.state().inventory().gold() >= goldBefore), "gold should not decrease on sell");
+        c.disconnect();
+    }
+
+    @Test
+    void skillsDeliveredOnLogin() throws Exception {
+        AtomicReference<SkillList> skills = new AtomicReference<>();
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onSkillList(SkillList s) {
+                skills.set(s);
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("PhapSu", "", 0);
+        assertTrue(await(() -> skills.get() != null && !skills.get().skills().isEmpty()),
+                "player should know starter skills from skill.txt");
+        c.disconnect();
+    }
+
+    @Test
+    void partyInviteFormsTeam() throws Exception {
+        AtomicReference<TeamUpdate> aTeam = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onTeamUpdate(TeamUpdate t) {
+                aTeam.set(t);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("Leader", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        GameClient b = new GameClient(new GameClientListener() { });
+        b.connect("127.0.0.1", port);
+        b.login("Follower", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+
+        a.inviteToTeam("Follower");
+        assertTrue(await(() -> aTeam.get() != null && aTeam.get().members().size() == 2),
+                "party should have 2 members after invite");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void mailSendAndReceive() throws Exception {
+        GameClient a = new GameClient(new GameClientListener() { });
+        a.connect("127.0.0.1", port);
+        a.login("Sender", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        AtomicReference<MailList> bMail = new AtomicReference<>();
+        GameClient b = new GameClient(new GameClientListener() {
+            @Override public void onMailList(MailList m) {
+                bMail.set(m);
+            }
+        });
+        b.connect("127.0.0.1", port);
+        b.login("Receiver", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+
+        a.sendMail("Receiver", "Chào", "Tin nhắn thử", 10);
+        // delivered live to B
+        assertTrue(await(() -> bMail.get() != null && !bMail.get().mails().isEmpty()),
+                "B should receive the mail");
+        assertTrue(bMail.get().mails().get(0).fromName().equals("Sender"), "mail from Sender");
+        assertTrue(bMail.get().mails().get(0).gold() == 10, "attached gold");
         a.disconnect();
         b.disconnect();
     }

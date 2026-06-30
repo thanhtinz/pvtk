@@ -21,8 +21,12 @@ public final class Player {
     private volatile int exp;
     private volatile int gold;
     private volatile int countryId;
+    private volatile int mp;
+    private volatile int maxMp;
+    private volatile int teamId;
 
     private final Inventory inventory;
+    private final java.util.Set<Integer> learnedSkills = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public Player(String name, int mapId, int x, int y, Inventory inventory) {
         this.id = IDS.getAndIncrement();
@@ -35,11 +39,57 @@ public final class Player {
         this.hp = 1000;
         this.level = 1;
         this.gold = 100;
+        this.maxMp = 100;
+        this.mp = 100;
         this.inventory = inventory;
     }
 
     public Inventory inventory() {
         return inventory;
+    }
+
+    public int mp() {
+        return mp;
+    }
+
+    public int maxMp() {
+        return maxMp;
+    }
+
+    /** Spends MP if affordable; returns true on success. */
+    public boolean spendMp(int amount) {
+        if (amount <= 0) {
+            return true;
+        }
+        if (mp < amount) {
+            return false;
+        }
+        mp -= amount;
+        return true;
+    }
+
+    public void regenMp(int amount) {
+        mp = Math.min(maxMp, mp + amount);
+    }
+
+    public int teamId() {
+        return teamId;
+    }
+
+    public void teamId(int teamId) {
+        this.teamId = teamId;
+    }
+
+    public java.util.Set<Integer> learnedSkills() {
+        return learnedSkills;
+    }
+
+    public void learnSkill(int skillId) {
+        learnedSkills.add(skillId);
+    }
+
+    public boolean knowsSkill(int skillId) {
+        return learnedSkills.contains(skillId);
     }
 
     public int exp() {

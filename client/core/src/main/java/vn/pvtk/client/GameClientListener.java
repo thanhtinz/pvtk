@@ -4,6 +4,10 @@ import vn.pvtk.protocol.message.Messages.ChatBroadcast;
 import vn.pvtk.protocol.message.Messages.CombatEvent;
 import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
+import vn.pvtk.protocol.message.Messages.MailList;
+import vn.pvtk.protocol.message.Messages.ShopListing;
+import vn.pvtk.protocol.message.Messages.SkillList;
+import vn.pvtk.protocol.message.Messages.TeamUpdate;
 
 /**
  * High-level game events surfaced to the UI layer. All callbacks fire on the
@@ -39,6 +43,18 @@ public interface GameClientListener {
     }
 
     default void onCountryList(CountryList list) {
+    }
+
+    default void onShopListing(ShopListing listing) {
+    }
+
+    default void onSkillList(SkillList skills) {
+    }
+
+    default void onTeamUpdate(TeamUpdate team) {
+    }
+
+    default void onMailList(MailList mails) {
     }
 
     default void onDisconnected(String reason) {

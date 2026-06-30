@@ -31,6 +31,8 @@ public final class World {
     private final SessionManager sessions;
     private final GameData data;
     private final CountryRegistry countries = new CountryRegistry();
+    private final TeamRegistry teams = new TeamRegistry();
+    private final MailRegistry mail = new MailRegistry();
     private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
     // monsters indexed globally by id and per-map for AOI.
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
@@ -56,8 +58,27 @@ public final class World {
         return countries;
     }
 
+    public TeamRegistry teams() {
+        return teams;
+    }
+
+    public MailRegistry mail() {
+        return mail;
+    }
+
     public GameData data() {
         return data;
+    }
+
+    /** Sends a packet to every online member of {@code teamId}. */
+    public void broadcastToTeam(int teamId, Packet packet) {
+        Team t = teams.get(teamId);
+        if (t == null) {
+            return;
+        }
+        for (int pid : t.members()) {
+            sessions.sendTo(pid, packet);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -91,7 +112,7 @@ public final class World {
         return monstersByMap.getOrDefault(mapId, List.of());
     }
 
-    /** Called periodically by the server tick to respawn dead monsters. */
+    /** Called periodically by the server tick: respawns monsters and regenerates MP. */
     public void tick(long nowMs) {
         for (Map.Entry<Integer, List<Monster>> e : monstersByMap.entrySet()) {
             MapInstance map = maps.get(e.getKey());
@@ -100,6 +121,11 @@ public final class World {
                     m.respawn();
                     broadcastToMap(map, new Messages.Spawn(m.toState(map.mapId())).toPacket(), -1);
                 }
+            }
+        }
+        for (PlayerSession s : sessions.all()) {
+            if (s.player() != null) {
+                s.player().regenMp(5);
             }
         }
     }
@@ -168,9 +194,21 @@ public final class World {
      * (turn-based) combat opcodes — see docs/ARCHITECTURE.md.
      */
     public void attack(PlayerSession session, int targetId, long nowMs) {
+        attack(session, targetId, 0, nowMs);
+    }
+
+    public void attack(PlayerSession session, int targetId, int skillId, long nowMs) {
         Player attacker = session.player();
         MapInstance map = map(attacker.mapId());
         int atk = attacker.attackPower();
+
+        // A known skill with enough MP adds bonus damage.
+        if (skillId > 0 && attacker.knowsSkill(skillId)) {
+            var skill = data.skill(skillId);
+            if (skill != null && attacker.spendMp(skill.useMp())) {
+                atk += skill.combatBonus();
+            }
+        }
 
         Monster monster = monstersById.get(targetId);
         if (monster != null && !monster.isDead()) {

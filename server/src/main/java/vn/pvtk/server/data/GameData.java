@@ -32,9 +32,14 @@ public final class GameData {
     private final Path assetsRoot;
     private final Map<String, DataTable> tables = new HashMap<>();
 
+    /** One purchasable line in an NPC shop: an item and its gold price. */
+    public record ShopOffer(int itemId, int price) { }
+
     // Typed registries built from the raw tables.
     private final Map<Integer, ItemDef> items = new LinkedHashMap<>();
     private final Map<Integer, MonsterDef> monsters = new LinkedHashMap<>();
+    private final Map<Integer, SkillDef> skills = new LinkedHashMap<>();
+    private final Map<Integer, List<ShopOffer>> shops = new LinkedHashMap<>();
 
     public GameData(Path assetsRoot) {
         this.assetsRoot = assetsRoot;
@@ -98,6 +103,37 @@ public final class GameData {
                 }
             }
         }
+        DataTable skillTable = tables.get("skill");
+        if (skillTable != null) {
+            for (Map<String, String> row : skillTable.rows()) {
+                SkillDef def = SkillDef.from(row);
+                if (def.id() > 0 && !skills.containsKey(def.id())) {
+                    skills.put(def.id(), def); // first (lowest) level row per skill id
+                }
+            }
+        }
+        DataTable shopTable = tables.get("shop");
+        if (shopTable != null) {
+            for (Map<String, String> row : shopTable.rows()) {
+                int shopId = parse(row.get("shopID"));
+                int itemId = parse(row.get("itemID"));
+                int price = parse(row.get("money1"));
+                if (shopId > 0 && itemId > 0) {
+                    shops.computeIfAbsent(shopId, k -> new ArrayList<>()).add(new ShopOffer(itemId, price));
+                }
+            }
+        }
+    }
+
+    private static int parse(String v) {
+        if (v == null || v.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     public ItemDef item(int id) {
@@ -114,6 +150,23 @@ public final class GameData {
 
     public List<MonsterDef> monsterList() {
         return new ArrayList<>(monsters.values());
+    }
+
+    public SkillDef skill(int id) {
+        return skills.get(id);
+    }
+
+    public Map<Integer, SkillDef> skills() {
+        return Collections.unmodifiableMap(skills);
+    }
+
+    /** Offers for an NPC shop, or an empty list if the shop id is unknown. */
+    public List<ShopOffer> shop(int shopId) {
+        return shops.getOrDefault(shopId, List.of());
+    }
+
+    public int shopCount() {
+        return shops.size();
     }
 
     private void load(String name) {

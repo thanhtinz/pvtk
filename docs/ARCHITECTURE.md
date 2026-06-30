@@ -83,15 +83,23 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
   reward → level-up, and timed respawn via the world tick (`CombatHandler`,
   `World.attack/tick`); PvP works the same way;
 * **country / guild** — create / list / join / leave / info, country-scoped chat
-  (`CountryHandler`, `CountryRegistry`).
+  (`CountryHandler`, `CountryRegistry`);
+* **NPC shop** — open a listing built from `shop.txt`, buy with gold, sell items
+  back (`ShopHandler`);
+* **skills** — known skills loaded from `skill.txt`, granted on login; using a
+  skill in combat costs MP and adds bonus damage (`SkillHandler`, `World.attack`);
+* **party / team** — invite (auto-accept) / leave with a live roster, team-scoped
+  chat (`TeamHandler`, `TeamRegistry`);
+* **mail** — send mail with attached gold to any player (online or offline) and
+  read the mailbox (`MailHandler`, `MailRegistry`).
 
 Each system is covered by an integration test in `client/core` that drives the
-real server with real clients.
+real server with real clients (17 tests total).
 
-**Roadmap (opcodes already catalogued in `OPCODES.md`):** player shops &
-marketplace, turn-based skill battles, teams/party, quests & escorts, country
-war, mail, mercenaries & pets, achievements. Each maps to a documented opcode
-and slots into the dispatcher as a new `PacketHandler`.
+**Roadmap (opcodes already catalogued in `OPCODES.md`):** player-to-player
+marketplace, turn-based skill battles, quests & escorts, country war, mail
+attachments of items, mercenaries & pets, achievements. Each maps to a documented
+opcode and slots into the dispatcher as a new `PacketHandler`.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the
