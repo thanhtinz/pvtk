@@ -31,8 +31,20 @@ from the legacy client and re-implemented in clean Java 21.
 - 🎨 **Decoded sprites** — the original `.fr` frame format is parsed
   (`SpriteSheet`); the `:tools` exporter slices the real sheets into 1754 frame
   PNGs and the libGDX client renders real game sprites for entities.
+- 🌐 **Website + admin panel** — landing page, top-up, webshop, leaderboard,
+  profile (change password), giftcodes and news for players; a full admin panel
+  to manage users, economy, items (with icons + search + multi-select), giftcodes,
+  webshop, send-item mail, reset boss, maps and monsters. Runs in the same process
+  as the game server. See the `web` module.
 - ✅ **Verified end-to-end** — integration tests boot the real server and real
   clients and assert login, spawn, movement, chat, inventory, combat and guilds.
+
+## New here? Start with the guides
+
+- 🟢 **[docs/SETUP_SERVER.md](docs/SETUP_SERVER.md)** — set up & run the server +
+  website, step by step (for beginners).
+- 🟢 **[docs/BUILD_CLIENT.md](docs/BUILD_CLIENT.md)** — build the PC / Android /
+  iOS / Java clients, step by step (for beginners).
 
 ## Module layout
 
@@ -46,6 +58,8 @@ from the legacy client and re-implemented in clean Java 21.
 | `client/desktop` | **PC** launcher (Windows/macOS/Linux) | LWJGL3 |
 | `client/android` | **Android** launcher | Android SDK |
 | `client/ios` | **iOS** launcher | RoboVM (macOS) |
+| `web` | **Website + admin panel** (HTTP API + static frontend) | JDK + Jackson |
+| `tools` | Offline asset tools (sprite-sheet exporter) | bare JDK |
 
 All the cross-platform front-ends live under one `client/` directory: a shared
 core (`core` + `game`) plus one thin launcher per platform — the standard libGDX
@@ -68,7 +82,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture.
 ./gradlew build
 ```
 
-### 2. Run the server
+### 2. Run the server (game only)
 
 ```bash
 ./gradlew :server:run                       # listens on 0.0.0.0:30000
@@ -76,6 +90,16 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture.
 PVTK_PORT=30000 ./gradlew :server:run
 ./gradlew :server:run --args="--host 0.0.0.0 --port 30000"
 ```
+
+### 2b. Run the server + website together
+
+```bash
+./gradlew :web:run                          # game on :30000, website on :8080
+```
+
+Then open <http://localhost:8080> (admin panel at `/admin.html`, default login
+`admin` / `admin123` — change it!). Full beginner steps in
+[docs/SETUP_SERVER.md](docs/SETUP_SERVER.md).
 
 ### 3. Run the PC client (libGDX desktop)
 

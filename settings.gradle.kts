@@ -18,6 +18,7 @@ rootProject.name = "pvtk"
 include(":protocol")        // Shared wire-protocol codec (no external deps)
 include(":server")          // Authoritative Netty game server
 include(":tools")           // Offline asset tools (sprite-sheet exporter)
+include(":web")             // Website + admin panel (HTTP API + static frontend)
 
 // --- Cross-platform client (one game, many launchers — the libGDX layout) ---
 // client/core    : networking + game model (pure JVM, no GPU)

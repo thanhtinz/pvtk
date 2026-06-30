@@ -16,6 +16,7 @@ public final class PlayerSession {
     private final long sessionId;
     private final Channel channel;
     private volatile Player player;
+    private volatile vn.pvtk.server.account.Account account;
     private volatile boolean authenticated;
     private volatile long lastActivity;
 
@@ -40,6 +41,14 @@ public final class PlayerSession {
     public void bindPlayer(Player player) {
         this.player = player;
         this.authenticated = true;
+    }
+
+    public vn.pvtk.server.account.Account account() {
+        return account;
+    }
+
+    public void account(vn.pvtk.server.account.Account account) {
+        this.account = account;
     }
 
     public boolean isAuthenticated() {

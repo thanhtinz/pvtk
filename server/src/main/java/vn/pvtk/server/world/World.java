@@ -30,6 +30,7 @@ public final class World {
 
     private final SessionManager sessions;
     private final GameData data;
+    private final vn.pvtk.server.account.AccountService accounts;
     private final CountryRegistry countries = new CountryRegistry();
     private final TeamRegistry teams = new TeamRegistry();
     private final MailRegistry mail = new MailRegistry();
@@ -44,9 +45,10 @@ public final class World {
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
     private final Map<Integer, List<Monster>> monstersByMap = new ConcurrentHashMap<>();
 
-    public World(SessionManager sessions, GameData data) {
+    public World(SessionManager sessions, GameData data, vn.pvtk.server.account.AccountService accounts) {
         this.sessions = sessions;
         this.data = data;
+        this.accounts = accounts;
         // A small set of starter maps. In a full build these load from data files
         // converted from the original client's `map/` resources.
         register(new MapInstance(1, "Tân Thủ Thôn", 64, 64, 32, 32));
@@ -357,6 +359,64 @@ public final class World {
         return monstersById.get(id);
     }
 
+    /** Admin: instantly respawn every monster (used for "reset boss"). Returns count. */
+    public int resetMonsters() {
+        int n = 0;
+        for (Map.Entry<Integer, List<Monster>> e : monstersByMap.entrySet()) {
+            MapInstance map = maps.get(e.getKey());
+            for (Monster m : e.getValue()) {
+                m.respawn();
+                broadcastToMap(map, new Messages.Spawn(m.toState(map.mapId())).toPacket(), -1);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Finds an online session by player name (case-insensitive). */
+    public PlayerSession findByName(String name) {
+        if (name == null) {
+            return null;
+        }
+        for (PlayerSession s : sessions.all()) {
+            if (s.player() != null && s.player().name().equalsIgnoreCase(name)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /** Admin: adds gold to an online player and pushes the updated bag. Returns true if online. */
+    public boolean addGoldOnline(String name, int delta) {
+        PlayerSession s = findByName(name);
+        if (s == null || s.player() == null) {
+            return false;
+        }
+        Player p = s.player();
+        p.addGold(delta);
+        s.send(new Messages.BagSnapshot(p.gold(), p.inventory().bagStacks(),
+                p.inventory().equipmentStacks()).toPacket());
+        s.send(new Messages.Spawn(p.toState()).toPacket());
+        return true;
+    }
+
+    /** Admin/web: sends a mail (optionally with gold + items) to a player, delivering live if online. */
+    public void sendMail(String fromName, String toName, String subject, String body,
+                         int gold, java.util.List<int[]> items) {
+        mail.send(fromName, toName, subject, body, gold);
+        if (items != null) {
+            for (int[] it : items) {
+                if (it.length >= 2 && it[0] > 0 && it[1] > 0) {
+                    mail.send(fromName, toName, subject, "Vật phẩm đính kèm", 0, it[0], it[1]);
+                }
+            }
+        }
+        PlayerSession to = findByName(toName);
+        if (to != null && to.player() != null) {
+            to.send(new Messages.MailList(mail.inbox(toName)).toPacket());
+        }
+    }
+
     private List<Monster> monstersOnMap(int mapId) {
         return monstersByMap.getOrDefault(mapId, List.of());
     }
@@ -480,6 +540,14 @@ public final class World {
             return;
         }
         MapInstance map = map(p.mapId());
+        // Persist progress back to the account so it survives logout.
+        var account = session.account();
+        if (account != null && accounts != null) {
+            account.gold = p.gold();
+            account.level = p.level();
+            account.exp = p.exp();
+            accounts.save();
+        }
         map.removePlayer(p.id());
         despawnPet(p);
         despawnEscort(p);

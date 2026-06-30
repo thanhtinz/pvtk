@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Phong Vân Online</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <header>
+    <div class="logo">⚔ PHONG VÂN</div>
+    <nav id="nav">
+      <a data-view="home" class="active">Trang chủ</a>
+      <a data-view="news">Tin tức</a>
+      <a data-view="leaderboard">BXH</a>
+      <a data-view="shop">Webshop</a>
+      <a data-view="topup">Nạp thẻ</a>
+      <a data-view="giftcode">Giftcode</a>
+      <a data-view="profile" class="auth-only hidden">Cá nhân</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="userbox" id="userbox">
+      <a class="btn small" id="loginBtn">Đăng nhập</a>
+      <a class="btn small sec" id="registerBtn">Đăng ký</a>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <div id="toast"></div>
+  <div id="modal-root"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

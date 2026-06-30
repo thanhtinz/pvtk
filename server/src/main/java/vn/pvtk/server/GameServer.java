@@ -32,9 +32,11 @@ public final class GameServer {
 
     private final ServerConfig config;
     private final GameData gameData = new GameData(GameData.resolveAssetsRoot()).loadAll();
+    private final vn.pvtk.server.account.AccountService accounts =
+            new vn.pvtk.server.account.AccountService(java.nio.file.Paths.get("data"));
     private final SessionManager sessions = new SessionManager();
-    private final World world = new World(sessions, gameData);
-    private final GameContext context = new GameContext(world, sessions, gameData);
+    private final World world = new World(sessions, gameData, accounts);
+    private final GameContext context = new GameContext(world, sessions, gameData, accounts);
     private final PacketDispatcher dispatcher = new PacketDispatcher(context);
 
     private EventLoopGroup bossGroup;
@@ -116,6 +118,10 @@ public final class GameServer {
 
     public GameData gameData() {
         return gameData;
+    }
+
+    public vn.pvtk.server.account.AccountService accounts() {
+        return accounts;
     }
 
     public SessionManager sessions() {

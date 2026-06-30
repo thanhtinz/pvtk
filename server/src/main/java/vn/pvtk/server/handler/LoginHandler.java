@@ -35,14 +35,19 @@ public final class LoginHandler implements PacketHandler {
         }
         LoginRequest req = LoginRequest.from(packet);
 
-        if (!authenticate(req.username(), req.password())) {
-            session.send(new LoginResponse(false, "Sai tài khoản hoặc mật khẩu", null).toPacket());
-            return;
-        }
         if (req.username().isBlank()) {
             session.send(new LoginResponse(false, "Tên tài khoản trống", null).toPacket());
             return;
         }
+        // Validate against the shared account store (auto-creates a fresh account).
+        vn.pvtk.server.account.Account account =
+                ctx.accounts().authenticateOrCreate(req.username(), req.password());
+        if (account == null) {
+            session.send(new LoginResponse(false, "Sai mật khẩu hoặc tài khoản bị khóa", null).toPacket());
+            return;
+        }
+        account.lastLogin = System.currentTimeMillis();
+        session.account(account);
 
         World world = ctx.world();
         MapInstance start = world.map(1);
@@ -52,6 +57,8 @@ public final class LoginHandler implements PacketHandler {
         inventory.add(2, 1);
         inventory.add(3, 1);
         Player player = new Player(req.username(), start.mapId(), start.spawnX(), start.spawnY(), inventory);
+        // Restore persistent progress (gold/level/exp) from the account.
+        player.applyProgress(account.gold, account.level, account.exp);
         // Grant the first few skills from skill.txt as starters.
         ctx.gameData().skills().keySet().stream().sorted().limit(3).forEach(player::learnSkill);
         session.bindPlayer(player);
@@ -78,10 +85,5 @@ public final class LoginHandler implements PacketHandler {
         session.send(new vn.pvtk.protocol.message.Messages.SkillList(skills).toPacket());
 
         log.info("Login OK: {} from {} on line {}", req.username(), session.remoteAddress(), req.serverLine());
-    }
-
-    /** Replace with real credential validation. Returns true for any non-empty user here. */
-    private boolean authenticate(String username, String password) {
-        return username != null && !username.isBlank();
     }
 }

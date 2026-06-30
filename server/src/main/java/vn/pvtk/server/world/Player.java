@@ -238,6 +238,15 @@ public final class Player {
         return gold;
     }
 
+    /** Seeds persistent progress loaded from the account on login. */
+    public void applyProgress(long gold, int level, int exp) {
+        this.gold = (int) Math.max(0, gold);
+        this.level = Math.max(1, level);
+        this.exp = Math.max(0, exp);
+        this.maxHp = 1000 + (this.level - 1) * 100;
+        this.hp = this.maxHp;
+    }
+
     public void addGold(int amount) {
         this.gold = Math.max(0, gold + amount);
     }

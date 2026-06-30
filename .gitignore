@@ -33,6 +33,8 @@ Thumbs.db
 *.log
 logs/
 server/data/
+data/
+out/
 
 # Large game assets imported from the original client (kept out of VCS)
 assets-imported/

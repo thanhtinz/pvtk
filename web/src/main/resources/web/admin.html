@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PVTK Admin</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <header>
+    <div class="logo">⚙ PVTK ADMIN</div>
+    <nav id="nav">
+      <a data-tab="dashboard" class="active">Tổng quan</a>
+      <a data-tab="users">Người chơi</a>
+      <a data-tab="mail">Gửi vật phẩm</a>
+      <a data-tab="items">Vật phẩm</a>
+      <a data-tab="monsters">Quái/Boss</a>
+      <a data-tab="maps">Máy chủ/Map</a>
+      <a data-tab="giftcodes">Giftcode</a>
+      <a data-tab="products">Webshop</a>
+      <a data-tab="news">Tin/Sự kiện</a>
+      <a data-tab="economy">Kinh tế</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="userbox"><a class="btn small sec" href="/">← Về trang chủ</a><a class="btn small" id="logout">Thoát</a></div>
+  </header>
+  <main id="app" class="container"></main>
+  <div id="toast"></div>
+  <div id="modal-root"></div>
+  <script src="/admin.js"></script>
+</body>
+</html>
