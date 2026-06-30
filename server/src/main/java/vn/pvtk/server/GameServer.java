@@ -12,6 +12,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.pvtk.server.data.GameData;
 import vn.pvtk.server.handler.GameContext;
 import vn.pvtk.server.handler.PacketDispatcher;
 import vn.pvtk.server.net.PacketDecoder;
@@ -30,9 +31,10 @@ public final class GameServer {
     private static final Logger log = LoggerFactory.getLogger(GameServer.class);
 
     private final ServerConfig config;
+    private final GameData gameData = new GameData(GameData.resolveAssetsRoot()).loadAll();
     private final SessionManager sessions = new SessionManager();
     private final World world = new World(sessions);
-    private final GameContext context = new GameContext(world, sessions);
+    private final GameContext context = new GameContext(world, sessions, gameData);
     private final PacketDispatcher dispatcher = new PacketDispatcher(context);
 
     private EventLoopGroup bossGroup;
@@ -91,6 +93,10 @@ public final class GameServer {
 
     public World world() {
         return world;
+    }
+
+    public GameData gameData() {
+        return gameData;
     }
 
     public SessionManager sessions() {

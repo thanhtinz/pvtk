@@ -17,3 +17,8 @@ dependencies {
 application {
     mainClass.set("vn.pvtk.server.ServerMain")
 }
+
+// Run from the repo root so the server finds the shared assets/ content tables.
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
+}

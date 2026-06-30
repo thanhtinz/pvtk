@@ -28,6 +28,9 @@ android {
         }
     }
 
+    // Bundle the shared asset tree (sprites, maps, UI, content tables) into the APK.
+    sourceSets["main"].assets.srcDirs("../assets")
+
     // libGDX ships native .so files inside its platform jars.
     packaging {
         resources.excludes.add("META-INF/robovm/ios/robovm.xml")
