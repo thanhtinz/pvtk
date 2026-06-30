@@ -1,0 +1,38 @@
+# Build output
+build/
+out/
+bin/
+*.class
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# Android / iOS
+local.properties
+client-android/local.properties
+*.apk
+*.aab
+client-ios/robovm.properties.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / runtime
+*.log
+logs/
+server/data/
+
+# Large game assets imported from the original client (kept out of VCS)
+assets-imported/

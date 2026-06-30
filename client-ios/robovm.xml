@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <executableName>PVTK</executableName>
+    <mainClass>vn.pvtk.client.ios.IOSLauncher</mainClass>
+    <os>ios</os>
+    <arch>thumbv7</arch>
+    <target>ios</target>
+    <iosInfoPList>Info.plist.xml</iosInfoPList>
+    <resources>
+        <resource>
+            <directory>../assets</directory>
+            <includes><include>**</include></includes>
+            <skipPngCrush>true</skipPngCrush>
+        </resource>
+    </resources>
+    <forceLinkClasses>
+        <pattern>com.badlogic.gdx.scenes.scene2d.ui.*</pattern>
+        <pattern>com.badlogic.gdx.backends.iosrobovm.**</pattern>
+        <pattern>com.badlogic.gdx.graphics.g3d.particles.**</pattern>
+    </forceLinkClasses>
+    <libs>
+        <lib>z</lib>
+    </libs>
+    <frameworks>
+        <framework>UIKit</framework>
+        <framework>OpenGLES</framework>
+        <framework>QuartzCore</framework>
+        <framework>CoreGraphics</framework>
+        <framework>OpenAL</framework>
+        <framework>AudioToolbox</framework>
+        <framework>AVFoundation</framework>
+    </frameworks>
+</config>

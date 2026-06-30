@@ -1,0 +1,26 @@
+[versions]
+netty = "4.1.115.Final"
+slf4j = "2.0.16"
+logback = "1.5.12"
+jackson = "2.18.1"
+junit = "5.11.3"
+gdx = "1.13.1"
+gdxControllers = "2.2.3"
+robovm = "2.3.21"
+
+[libraries]
+netty-all = { module = "io.netty:netty-all", version.ref = "netty" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+# libGDX
+gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
+gdx-backend-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdx" }
+gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
+gdx-freetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdx" }
+gdx-backend-android = { module = "com.badlogicgames.gdx:gdx-backend-android", version.ref = "gdx" }
+gdx-backend-robovm = { module = "com.badlogicgames.gdx:gdx-backend-robovm", version.ref = "gdx" }
