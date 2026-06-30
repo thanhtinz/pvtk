@@ -28,6 +28,9 @@ from the legacy client and re-implemented in clean Java 21.
   attachments), party/team, map travel, country/guild, **country war**,
   **monster aggro AI**, a **PvP arena**, **escort missions** (robbable), and a
   faithful **turn-based battle** mode (plan → resolve by speed → rewards).
+- 🎨 **Decoded sprites** — the original `.fr` frame format is parsed
+  (`SpriteSheet`); the `:tools` exporter slices the real sheets into 1754 frame
+  PNGs and the libGDX client renders real game sprites for entities.
 - ✅ **Verified end-to-end** — integration tests boot the real server and real
   clients and assert login, spawn, movement, chat, inventory, combat and guilds.
 

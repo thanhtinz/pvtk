@@ -130,16 +130,27 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
 
 Each system is covered by an integration test in `client/core` (30 tests total).
 
-## Remaining deep port
+## Sprites
 
-One piece of the original remains a large, specialised effort:
+The proprietary `.fr` frame tables have been **decoded** (`SpriteSheet` in the
+protocol module): each `.fr` slices its sibling `.png` into frame rectangles
+(`[count:u8] { id:u8, x:u16, y:u16, w:u16, h:u16 }`, big-endian). This was
+verified against the real assets — `common/1.png` (256×320) → 80 × 32×32 frames,
+`common/1002.png` → a 6×7 number font, and so on.
 
-* **Sprite / animation rendering** — the `.png` files in `assets/` are real
-  image sheets, but the proprietary `.spr` / `.fr` / `.pd` / `.pl` files describe
-  how to slice, animate and palette-swap them (see the original `h`/`az`/`bo`
-  image classes). The clients currently render the real map artwork plus
-  colour-coded entity markers with HP bars and names; a faithful sprite engine
-  that decodes those formats is the remaining graphics work.
+* The `:tools` module (`SpriteExporter`) slices every `common/*.fr` sheet into
+  individual frame PNGs offline — **172 sheets → 1754 frames** — which is fully
+  verifiable headlessly (each output is a standard PNG).
+* The libGDX client loads a real decoded sheet (`SpriteAtlas`) and renders actual
+  game sprite frames for entities, with colour-box fallback if assets are absent.
+
+### Remaining graphics work
+
+* **Animation playback** — the `.pd` / `.spr` files (under `ani/`) describe
+  multi-part animated sprites (frame sequences + per-part offsets) and `.pl`
+  files are palettes for recolouring. Static frame slicing via `.fr` is done;
+  full skeletal animation + palette swaps (the original `h`/`az`/`bo` image
+  classes) is the remaining piece.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the

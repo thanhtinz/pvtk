@@ -42,6 +42,7 @@ public final class PvtkGame extends ApplicationAdapter {
 
     private Texture mapTexture;
     private int mapTextureId = -1;
+    private SpriteAtlas atlas; // real decoded game sprites (null => fallback boxes)
 
     public PvtkGame(PvtkConfig config) {
         this.config = config;
@@ -54,6 +55,8 @@ public final class PvtkGame extends ApplicationAdapter {
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
+        // Real game sprites decoded from the original common/1.{png,fr} sheet.
+        atlas = SpriteAtlas.tryLoad("common/1");
 
         client = new GameClient(new RenderThreadListener());
         Gdx.input.setInputProcessor(new TapHandler());
@@ -80,7 +83,20 @@ public final class PvtkGame extends ApplicationAdapter {
 
         drawBackground(self);
 
-        // --- entities (HP bars via ShapeRenderer) ---
+        // --- entity bodies: real decoded sprites if available, else colour boxes ---
+        if (atlas != null) {
+            batch.setProjectionMatrix(camera.combined);
+            batch.begin();
+            for (Entity e : client.state().others()) {
+                batch.draw(atlas.region(spriteIndex(e)), e.x * ts, e.y * ts, ts, ts);
+            }
+            if (self != null) {
+                batch.draw(atlas.region(0), self.x * ts, self.y * ts, ts, ts);
+            }
+            batch.end();
+        }
+
+        // --- HP bars (and fallback body boxes) via ShapeRenderer ---
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : client.state().others()) {
@@ -90,10 +106,10 @@ public final class PvtkGame extends ApplicationAdapter {
                 case vn.pvtk.protocol.message.Messages.KIND_NPC -> Color.ORANGE;
                 default -> Color.SKY;
             };
-            drawEntity(e, color, ts);
+            drawEntity(e, color, ts, atlas == null);
         }
         if (self != null) {
-            drawEntity(self, Color.GOLD, ts);
+            drawEntity(self, Color.GOLD, ts, atlas == null);
         }
         shapes.end();
 
@@ -186,11 +202,23 @@ public final class PvtkGame extends ApplicationAdapter {
         shapes.end();
     }
 
-    private void drawEntity(Entity e, Color color, int ts) {
+    /** Maps an entity to a frame in the sprite atlas (stable per kind/id). */
+    private int spriteIndex(Entity e) {
+        return switch (e.kind) {
+            case vn.pvtk.protocol.message.Messages.KIND_MONSTER -> 8 + Math.abs(e.id) % 8;
+            case vn.pvtk.protocol.message.Messages.KIND_PET -> 4;
+            case vn.pvtk.protocol.message.Messages.KIND_NPC -> 16;
+            default -> 1 + Math.abs(e.id) % 3;
+        };
+    }
+
+    private void drawEntity(Entity e, Color color, int ts, boolean drawBody) {
         float bx = e.x * ts + 3;
         float by = e.y * ts + 3;
-        shapes.setColor(color);
-        shapes.rect(bx, by, ts - 6, ts - 6);
+        if (drawBody) {
+            shapes.setColor(color);
+            shapes.rect(bx, by, ts - 6, ts - 6);
+        }
         // HP bar above the entity.
         if (e.maxHp > 0) {
             float pct = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
@@ -220,6 +248,9 @@ public final class PvtkGame extends ApplicationAdapter {
         }
         if (mapTexture != null) {
             mapTexture.dispose();
+        }
+        if (atlas != null) {
+            atlas.dispose();
         }
         shapes.dispose();
         batch.dispose();
