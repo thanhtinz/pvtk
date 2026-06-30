@@ -96,6 +96,10 @@ public final class Opcodes {
     public static final int MAIL_CLAIM          = 11011; // mail: claim attachment
     public static final int WAR_DECLARE         = 15047; // country war: declare
     public static final int WAR_STATUS          = 15040; // country war: status / scoreboard
+    public static final int ARENA_QUEUE         = 14526; // arena: join queue / status
+    public static final int ARENA_STATUS        = 14528; // arena: status / result push
+    public static final int ESCORT_START        = 14510; // escort: begin mission
+    public static final int ESCORT_STATUS       = 14514; // escort: status / event push
 
     static {
         register(5000, "CHECK_EDITION_MSG");

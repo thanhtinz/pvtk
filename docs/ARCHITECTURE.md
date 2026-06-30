@@ -107,15 +107,23 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
   recipient claims it into their bag (`MailHandler`, `MailRegistry.claim`);
 * **country war** — a king declares war on another country; PvP kills between the
   two nations score points and the first to 10 wins, with a live scoreboard
-  pushed to both sides (`WarHandler`, `WarManager`).
+  pushed to both sides (`WarHandler`, `WarManager`);
+* **monster aggro AI** — living monsters attack the nearest player in range each
+  world tick; a slain player revives at the map's spawn (`World.monsterAggroTick`);
+* **arena** — 1-v-1 matchmaking: queue, get paired, fight in the arena map; the
+  killer wins, gains rank, and both return to town (`ArenaHandler`, `ArenaManager`,
+  `World.arenaQueue/resolveArena`);
+* **escort** — accept a caravan mission in town; an NPC caravan follows you and is
+  delivered to the destination map for a gold/exp reward (`EscortHandler`,
+  `World.startEscort/checkEscortArrival`).
 
 Each system is covered by an integration test in `client/core` that drives the
-real server with real clients (25 tests total).
+real server with real clients (28 tests total).
 
 **Roadmap (opcodes already catalogued in `OPCODES.md`):** turn-based skill
-battles matching the original engine, escort missions, deeper pet/monster AI,
-and the remaining catalogued opcodes. Each maps to a documented opcode and slots
-into the dispatcher as a new `PacketHandler`.
+battles matching the original engine, caravan robbery PvP, and the remaining
+catalogued opcodes. Each maps to a documented opcode and slots into the
+dispatcher as a new `PacketHandler`.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the

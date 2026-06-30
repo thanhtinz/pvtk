@@ -6,6 +6,8 @@ import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
 import vn.pvtk.protocol.message.Messages.AchievementList;
 import vn.pvtk.protocol.message.Messages.AchievementUnlocked;
+import vn.pvtk.protocol.message.Messages.ArenaStatus;
+import vn.pvtk.protocol.message.Messages.EscortStatus;
 import vn.pvtk.protocol.message.Messages.FriendList;
 import vn.pvtk.protocol.message.Messages.MailList;
 import vn.pvtk.protocol.message.Messages.MarketList;
@@ -83,6 +85,12 @@ public interface GameClientListener {
     }
 
     default void onWarStatus(WarStatus war) {
+    }
+
+    default void onArenaStatus(ArenaStatus arena) {
+    }
+
+    default void onEscortStatus(EscortStatus escort) {
     }
 
     default void onDisconnected(String reason) {

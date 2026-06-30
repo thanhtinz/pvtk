@@ -35,8 +35,10 @@ public final class World {
     private final MailRegistry mail = new MailRegistry();
     private final MarketRegistry market = new MarketRegistry();
     private final WarManager war = new WarManager();
-    // Pets keyed by owner player id.
+    private final ArenaManager arena = new ArenaManager();
+    // Followers keyed by owner player id.
     private final Map<Integer, Pet> petsByOwner = new ConcurrentHashMap<>();
+    private final Map<Integer, Pet> escortByOwner = new ConcurrentHashMap<>();
     private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
     // monsters indexed globally by id and per-map for AOI.
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
@@ -50,6 +52,7 @@ public final class World {
         register(new MapInstance(1, "Tân Thủ Thôn", 64, 64, 32, 32));
         register(new MapInstance(2, "Lạc Dương Thành", 96, 96, 48, 48));
         register(new MapInstance(3, "Hoang Dã", 128, 128, 20, 20));
+        register(new MapInstance(4, "Đấu Trường", 48, 48, 24, 24));
         spawnInitialMonsters();
     }
 
@@ -76,6 +79,55 @@ public final class World {
 
     public WarManager war() {
         return war;
+    }
+
+    public ArenaManager arena() {
+        return arena;
+    }
+
+    // ------------------------------------------------------------------
+    // Escort caravan (a non-combat follower delivered to a destination map)
+    // ------------------------------------------------------------------
+
+    public void startEscort(PlayerSession session) {
+        Player p = session.player();
+        if (p.escortActive() || p.mapId() != 1) {
+            session.send(new Messages.EscortStatus(p.escortActive(), 0,
+                    map(2).name(), "Chỉ nhận hộ tống tại Tân Thủ Thôn").toPacket());
+            return;
+        }
+        int destMap = 2;
+        p.startEscort(destMap);
+        MapInstance map = map(p.mapId());
+        Pet caravan = new Pet(p.id(), "Tiêu Xa", 0, p.mapId(),
+                map.clampX(p.x() - 1), map.clampY(p.y()), Messages.KIND_NPC);
+        escortByOwner.put(p.id(), caravan);
+        broadcastToMap(map, new Messages.Spawn(caravan.toState()).toPacket(), -1);
+        session.send(new Messages.EscortStatus(true, 0, map(destMap).name(),
+                "Hộ tống Tiêu Xa đến " + map(destMap).name()).toPacket());
+    }
+
+    private void despawnEscort(Player p) {
+        Pet caravan = escortByOwner.get(p.id());
+        if (caravan != null) {
+            broadcastToMap(map(caravan.mapId()), new Messages.Despawn(caravan.id()).toPacket(), -1);
+        }
+    }
+
+    /** Called after a map change: completes the escort if the destination is reached. */
+    private void checkEscortArrival(PlayerSession session) {
+        Player p = session.player();
+        if (p.escortActive() && p.mapId() == p.escortDestMap()) {
+            int rewardGold = 300;
+            int rewardExp = 400;
+            p.addGold(rewardGold);
+            p.addExp(rewardExp);
+            p.clearEscort();
+            escortByOwner.remove(p.id());
+            session.send(new Messages.Spawn(p.toState()).toPacket());
+            session.send(new Messages.EscortStatus(false, 100, map(p.mapId()).name(),
+                    "Hoàn thành hộ tống! +" + rewardGold + " vàng, +" + rewardExp + " EXP").toPacket());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -108,13 +160,28 @@ public final class World {
     }
 
     private void followWithPet(Player owner) {
-        Pet pet = petsByOwner.get(owner.id());
-        if (pet == null) {
-            return;
-        }
         MapInstance map = map(owner.mapId());
-        pet.place(owner.mapId(), map.clampX(owner.x() + 1), map.clampY(owner.y()));
-        broadcastToMap(map, new Messages.MoveUpdate(pet.id(), pet.x(), pet.y(), 0).toPacket(), -1);
+        Pet pet = petsByOwner.get(owner.id());
+        if (pet != null) {
+            pet.place(owner.mapId(), map.clampX(owner.x() + 1), map.clampY(owner.y()));
+            broadcastToMap(map, new Messages.MoveUpdate(pet.id(), pet.x(), pet.y(), 0).toPacket(), -1);
+        }
+        Pet caravan = escortByOwner.get(owner.id());
+        if (caravan != null) {
+            caravan.place(owner.mapId(), map.clampX(owner.x() - 1), map.clampY(owner.y()));
+            broadcastToMap(map, new Messages.MoveUpdate(caravan.id(), caravan.x(), caravan.y(), 0).toPacket(), -1);
+        }
+    }
+
+    /** Re-places the escort caravan onto the player's current map (after a jump). */
+    private void respawnEscort(PlayerSession session) {
+        Player p = session.player();
+        Pet caravan = escortByOwner.get(p.id());
+        if (caravan != null) {
+            MapInstance map = map(p.mapId());
+            caravan.place(p.mapId(), map.clampX(p.x() - 1), map.clampY(p.y()));
+            broadcastToMap(map, new Messages.Spawn(caravan.toState()).toPacket(), -1);
+        }
     }
 
     public GameData data() {
@@ -143,6 +210,38 @@ public final class World {
                 session.send(new Messages.AchievementUnlocked(def.id(), def.name()).toPacket());
             }
         }
+    }
+
+    /** Queues a player for the arena; if matched, teleports both fighters in. */
+    public void arenaQueue(PlayerSession session) {
+        Player p = session.player();
+        if (p.inArena()) {
+            session.send(new Messages.ArenaStatus(2, name(p.arenaOpponentId()), p.arenaRank(),
+                    "Đang trong trận").toPacket());
+            return;
+        }
+        int opponentId = arena.enqueue(p.id());
+        if (opponentId == 0) {
+            session.send(new Messages.ArenaStatus(1, "", p.arenaRank(), "Đang chờ đối thủ...").toPacket());
+            return;
+        }
+        PlayerSession oppSession = sessions.byPlayerId(opponentId);
+        if (oppSession == null || oppSession.player() == null) {
+            session.send(new Messages.ArenaStatus(1, "", p.arenaRank(), "Đang chờ đối thủ...").toPacket());
+            return;
+        }
+        Player opp = oppSession.player();
+        p.arenaOpponentId(opp.id());
+        opp.arenaOpponentId(p.id());
+        changeMap(session, 4);
+        changeMap(oppSession, 4);
+        session.send(new Messages.ArenaStatus(2, opp.name(), p.arenaRank(), "Trận đấu bắt đầu!").toPacket());
+        oppSession.send(new Messages.ArenaStatus(2, p.name(), opp.arenaRank(), "Trận đấu bắt đầu!").toPacket());
+    }
+
+    private String name(int playerId) {
+        PlayerSession s = sessions.byPlayerId(playerId);
+        return s != null && s.player() != null ? s.player().name() : "?";
     }
 
     /** Sends a packet to every online member of {@code teamId}. */
@@ -204,6 +303,45 @@ public final class World {
             }
         }
         petCombatTick(nowMs);
+        monsterAggroTick(nowMs);
+    }
+
+    /** Living monsters attack the nearest player in range on their map. */
+    private void monsterAggroTick(long nowMs) {
+        for (Map.Entry<Integer, List<Monster>> e : monstersByMap.entrySet()) {
+            MapInstance map = maps.get(e.getKey());
+            for (Monster m : e.getValue()) {
+                if (m.isDead()) {
+                    continue;
+                }
+                PlayerSession victimSession = null;
+                Player victim = null;
+                for (int pid : map.playerIds()) {
+                    PlayerSession s = sessions.byPlayerId(pid);
+                    if (s != null && s.player() != null
+                            && Math.abs(s.player().x() - m.x()) <= 3
+                            && Math.abs(s.player().y() - m.y()) <= 3) {
+                        victimSession = s;
+                        victim = s.player();
+                        break;
+                    }
+                }
+                if (victim == null) {
+                    continue;
+                }
+                int atk = Math.max(1, Math.max((m.def().atkMin() + m.def().atkMax()) / 2, m.def().level()));
+                int dmg = Math.max(1, atk - victim.defense());
+                victim.damage(dmg);
+                boolean killed = victim.isDead();
+                broadcastToMap(map, new CombatEvent(m.id(), victim.id(), dmg, victim.hp(), killed).toPacket(), -1);
+                if (killed) {
+                    victim.revive();
+                    victim.moveTo(map.spawnX(), map.spawnY(), 0);
+                    broadcastToMap(map, new MoveUpdate(victim.id(), victim.x(), victim.y(), 0).toPacket(), -1);
+                    victimSession.send(new Messages.Spawn(victim.toState()).toPacket());
+                }
+            }
+        }
     }
 
     /** Each pet auto-attacks the nearest living monster on its map. */
@@ -269,7 +407,10 @@ public final class World {
         MapInstance map = map(p.mapId());
         map.removePlayer(p.id());
         despawnPet(p);
+        despawnEscort(p);
         petsByOwner.remove(p.id());
+        escortByOwner.remove(p.id());
+        arena.remove(p.id());
         broadcastToMap(map, new vn.pvtk.protocol.message.Messages.Despawn(p.id()).toPacket(), p.id());
         log.info("Player {} (#{}) left map {} ({} online)",
                 p.name(), p.id(), map.mapId(), sessions.onlineCount());
@@ -296,6 +437,11 @@ public final class World {
         for (Pet pet : petsByOwner.values()) {
             if (pet.mapId() == map.mapId() && pet.ownerId() != viewer.id()) {
                 list.add(pet.toState());
+            }
+        }
+        for (Pet caravan : escortByOwner.values()) {
+            if (caravan.mapId() == map.mapId() && caravan.ownerId() != viewer.id()) {
+                list.add(caravan.toState());
             }
         }
         return list;
@@ -360,6 +506,10 @@ public final class World {
             target.damage(dmg);
             boolean killed = target.isDead();
             broadcastToMap(map, new CombatEvent(attacker.id(), targetId, dmg, target.hp(), killed).toPacket(), -1);
+            if (killed && attacker.inArena() && attacker.arenaOpponentId() == target.id()) {
+                resolveArena(session, targetSession);
+                return;
+            }
             if (killed) {
                 target.revive();
                 // Respawn the defeated player at the map's spawn point.
@@ -405,6 +555,7 @@ public final class World {
         }
         old.removePlayer(p.id());
         despawnPet(p);
+        despawnEscort(p);
         broadcastToMap(old, new Messages.Despawn(p.id()).toPacket(), p.id());
 
         p.mapId(dest.mapId());
@@ -412,10 +563,12 @@ public final class World {
         dest.addPlayer(p.id());
         broadcastToMap(dest, new Messages.Spawn(p.toState()).toPacket(), p.id());
         spawnPet(session);
+        respawnEscort(session);
 
         // Update the traveller's own position and give it the new map snapshot.
         session.send(new Messages.Spawn(p.toState()).toPacket());
         session.send(new Messages.WorldSnapshot(dest.mapId(), visibleEntities(p)).toPacket());
+        checkEscortArrival(session);
         log.info("Player {} jumped to map {} [{}]", p.name(), dest.mapId(), dest.name());
     }
 
@@ -429,6 +582,22 @@ public final class World {
         Packet update = new vn.pvtk.protocol.message.Messages.MoveUpdate(p.id(), cx, cy, dir).toPacket();
         broadcastToMap(map, update, -1); // include the mover for authoritative reconciliation
         followWithPet(p);
+    }
+
+    /** Ends an arena match: winner gains rank, both return to town. */
+    private void resolveArena(PlayerSession winnerSession, PlayerSession loserSession) {
+        Player winner = winnerSession.player();
+        Player loser = loserSession.player();
+        winner.addArenaRank();
+        winner.arenaOpponentId(0);
+        loser.arenaOpponentId(0);
+        loser.revive();
+        winnerSession.send(new Messages.ArenaStatus(3, loser.name(), winner.arenaRank(),
+                "Bạn thắng! Hạng +1").toPacket());
+        loserSession.send(new Messages.ArenaStatus(3, winner.name(), loser.arenaRank(),
+                "Bạn thua.").toPacket());
+        changeMap(winnerSession, 1);
+        changeMap(loserSession, 1);
     }
 
     /** Sends a packet to every player on {@code map} except {@code exceptPlayerId}. */

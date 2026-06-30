@@ -13,6 +13,8 @@ import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
 import vn.pvtk.protocol.message.Messages;
 import vn.pvtk.protocol.message.Messages.AchievementList;
+import vn.pvtk.protocol.message.Messages.ArenaStatus;
+import vn.pvtk.protocol.message.Messages.EscortStatus;
 import vn.pvtk.protocol.message.Messages.FriendList;
 import vn.pvtk.protocol.message.Messages.MailList;
 import vn.pvtk.protocol.message.Messages.MarketList;
@@ -463,6 +465,73 @@ class GameplaySystemsTest {
         assertTrue(await(() -> aWar.get() != null && aWar.get().active()
                         && aWar.get().defender().equals("Bang B")),
                 "war should be active between Bang A and Bang B");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
+    void escortCompletesOnArrival() throws Exception {
+        AtomicReference<EscortStatus> esc = new AtomicReference<>();
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onEscortStatus(EscortStatus e) {
+                esc.set(e);
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("TieuKhach", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+
+        c.startEscort();
+        assertTrue(await(() -> esc.get() != null && esc.get().active()), "escort should start");
+        // Deliver the caravan to the destination map (2).
+        c.jumpMap(2);
+        assertTrue(await(() -> esc.get() != null && !esc.get().active()
+                        && esc.get().message().contains("Hoàn thành")),
+                "escort should complete on arrival");
+        c.disconnect();
+    }
+
+    @Test
+    void monsterAggroDamagesNearbyPlayer() throws Exception {
+        GameClient c = new GameClient(new GameClientListener() { });
+        c.connect("127.0.0.1", port);
+        c.login("ConMoi", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+
+        c.jumpMap(3);
+        assertTrue(await(() -> c.state().others().stream().anyMatch(Entity::isMonster)), "monsters");
+        // Stand on a monster so its aggro range covers us.
+        Entity monster = c.state().others().stream().filter(Entity::isMonster).findFirst().orElseThrow();
+        c.move(monster.x, monster.y, 0);
+
+        int maxHp = c.state().self().maxHp;
+        assertTrue(await(() -> c.state().self() != null && c.state().self().hp < maxHp),
+                "a nearby monster should damage the player");
+        c.disconnect();
+    }
+
+    @Test
+    void arenaQueueMatchesTwoPlayers() throws Exception {
+        AtomicReference<ArenaStatus> aArena = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onArenaStatus(ArenaStatus s) {
+                aArena.set(s);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("DauSiA", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+
+        GameClient b = new GameClient(new GameClientListener() { });
+        b.connect("127.0.0.1", port);
+        b.login("DauSiB", "", 0);
+        assertTrue(await(() -> b.state().self() != null), "B login");
+
+        a.arenaQueue(); // A waits
+        b.arenaQueue(); // B matches with A
+        assertTrue(await(() -> aArena.get() != null && aArena.get().state() == 2
+                        && aArena.get().opponent().equals("DauSiB")),
+                "A should be matched against B in the arena");
         a.disconnect();
         b.disconnect();
     }

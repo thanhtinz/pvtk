@@ -160,6 +160,24 @@ public final class GameClient implements ConnectionListener {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.WAR_STATUS).putShort(0));
     }
 
+    // --- Arena ---
+    public void arenaQueue() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ARENA_QUEUE).putShort(0));
+    }
+
+    public void arenaStatus() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ARENA_STATUS).putShort(0));
+    }
+
+    // --- Escort ---
+    public void startEscort() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ESCORT_START).putShort(0));
+    }
+
+    public void escortStatus() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ESCORT_STATUS).putShort(0));
+    }
+
     // --- Quests ---
     public void requestQuests() {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.QUEST_LIST).putShort(0));
@@ -272,6 +290,10 @@ public final class GameClient implements ConnectionListener {
                     vn.pvtk.protocol.message.Messages.FriendList.from(p));
             case Opcodes.WAR_STATUS -> listener.onWarStatus(
                     vn.pvtk.protocol.message.Messages.WarStatus.from(p));
+            case Opcodes.ARENA_STATUS -> listener.onArenaStatus(
+                    vn.pvtk.protocol.message.Messages.ArenaStatus.from(p));
+            case Opcodes.ESCORT_STATUS -> listener.onEscortStatus(
+                    vn.pvtk.protocol.message.Messages.EscortStatus.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

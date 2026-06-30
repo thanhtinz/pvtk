@@ -28,6 +28,10 @@ public final class Player {
     private volatile int petBonus;
     private volatile String petName = "";
     private volatile int totalKills;
+    private volatile int arenaRank;
+    private volatile int arenaOpponentId;
+    private volatile boolean escortActive;
+    private volatile int escortDestMap;
 
     private final Inventory inventory;
     private final java.util.Set<Integer> learnedSkills = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -164,6 +168,46 @@ public final class Player {
 
     public boolean hasPet() {
         return petBonus > 0 && !petName.isEmpty();
+    }
+
+    // --- arena ---
+    public int arenaRank() {
+        return arenaRank;
+    }
+
+    public void addArenaRank() {
+        this.arenaRank++;
+    }
+
+    public int arenaOpponentId() {
+        return arenaOpponentId;
+    }
+
+    public void arenaOpponentId(int id) {
+        this.arenaOpponentId = id;
+    }
+
+    public boolean inArena() {
+        return arenaOpponentId != 0;
+    }
+
+    // --- escort ---
+    public boolean escortActive() {
+        return escortActive;
+    }
+
+    public int escortDestMap() {
+        return escortDestMap;
+    }
+
+    public void startEscort(int destMap) {
+        this.escortActive = true;
+        this.escortDestMap = destMap;
+    }
+
+    public void clearEscort() {
+        this.escortActive = false;
+        this.escortDestMap = 0;
     }
 
     public int exp() {

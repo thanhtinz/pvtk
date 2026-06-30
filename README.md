@@ -25,7 +25,8 @@ from the legacy client and re-implemented in clean Java 21.
   with rewards/level-ups & respawn (`monster.txt`), skills with MP (`skill.txt`),
   NPC shops (`shop.txt`), quests, achievements, a player marketplace, pet
   companions that follow & auto-fight, friends, mail (with gold/item
-  attachments), party/team, map travel, country/guild, and **country war**.
+  attachments), party/team, map travel, country/guild, **country war**,
+  **monster aggro AI**, a **PvP arena**, and **escort missions**.
 - ✅ **Verified end-to-end** — integration tests boot the real server and real
   clients and assert login, spawn, movement, chat, inventory, combat and guilds.
 

@@ -26,6 +26,7 @@ public final class Messages {
     public static final int KIND_PLAYER = 0;
     public static final int KIND_MONSTER = 1;
     public static final int KIND_PET = 2;
+    public static final int KIND_NPC = 3;
 
     /** A snapshot of one entity (player or NPC) as seen on the wire. */
     public record EntityState(
@@ -872,6 +873,41 @@ public final class Messages {
         public static WarStatus from(Packet p) {
             return new WarStatus(p.getBool(), p.getString(), p.getString(),
                     p.getUShort(), p.getUShort(), p.getString());
+        }
+    }
+
+    // ==================================================================
+    // Arena (ARENA_QUEUE 14526, ARENA_STATUS 14528)
+    // ==================================================================
+
+    /** state: 0 idle, 1 queued, 2 fighting, 3 result. */
+    public record ArenaStatus(int state, String opponent, int rank, String message) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.ARENA_STATUS)
+                    .putByte(state).putString(opponent == null ? "" : opponent)
+                    .putShort(rank).putString(message == null ? "" : message);
+        }
+
+        public static ArenaStatus from(Packet p) {
+            return new ArenaStatus(p.getUByte(), p.getString(), p.getUShort(), p.getString());
+        }
+    }
+
+    // ==================================================================
+    // Escort (ESCORT_START 14510, ESCORT_STATUS 14514)
+    // ==================================================================
+
+    /** active escort progress; destMap names where the caravan must be delivered. */
+    public record EscortStatus(boolean active, int progress, String destMap, String message) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.ESCORT_STATUS)
+                    .putBool(active).putShort(progress)
+                    .putString(destMap == null ? "" : destMap)
+                    .putString(message == null ? "" : message);
+        }
+
+        public static EscortStatus from(Packet p) {
+            return new EscortStatus(p.getBool(), p.getUShort(), p.getString(), p.getString());
         }
     }
 }

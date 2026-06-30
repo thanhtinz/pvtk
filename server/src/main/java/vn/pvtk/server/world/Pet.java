@@ -13,12 +13,17 @@ public final class Pet {
     private final int ownerId;
     private final String name;
     private final int atkBonus;
+    private final int kind;
 
     private int mapId;
     private int x;
     private int y;
 
     public Pet(int ownerId, String name, int atkBonus, int mapId, int x, int y) {
+        this(ownerId, name, atkBonus, mapId, x, y, Messages.KIND_PET);
+    }
+
+    public Pet(int ownerId, String name, int atkBonus, int mapId, int x, int y, int kind) {
         this.id = IDS.getAndIncrement();
         this.ownerId = ownerId;
         this.name = name;
@@ -26,6 +31,7 @@ public final class Pet {
         this.mapId = mapId;
         this.x = x;
         this.y = y;
+        this.kind = kind;
     }
 
     public int id() {
@@ -59,7 +65,7 @@ public final class Pet {
     }
 
     public EntityState toState() {
-        // Pets have no HP bar of their own; surface the bonus as the "level" field.
-        return new EntityState(id, name, mapId, x, y, 0, 1, 1, atkBonus, Messages.KIND_PET);
+        // Followers have no HP bar of their own; surface the bonus as the "level" field.
+        return new EntityState(id, name, mapId, x, y, 0, 1, 1, atkBonus, kind);
     }
 }

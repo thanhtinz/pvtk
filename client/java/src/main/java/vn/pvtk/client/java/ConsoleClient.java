@@ -123,6 +123,15 @@ public final class ConsoleClient {
                         ? w.attacker() + " " + w.attackerScore() + " - " + w.defenderScore() + " " + w.defender()
                         : w.message()));
             }
+            @Override public void onArenaStatus(vn.pvtk.protocol.message.Messages.ArenaStatus a) {
+                String st = new String[]{"rảnh", "đang chờ", "đang đấu", "kết quả"}[Math.min(3, a.state())];
+                System.out.println("[arena] " + st + (a.opponent().isEmpty() ? "" : " vs " + a.opponent())
+                        + " (hạng " + a.rank() + ") " + a.message());
+            }
+            @Override public void onEscortStatus(vn.pvtk.protocol.message.Messages.EscortStatus e) {
+                System.out.println("[escort] " + (e.active() ? "đang hộ tống đến " + e.destMap()
+                        + " (" + e.progress() + "%)" : "") + " " + e.message());
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -265,6 +274,8 @@ public final class ConsoleClient {
                     if (t.length > 1) client.declareWar(Integer.parseInt(t[1].trim()));
                     else System.out.println("usage: declare <countryId>");
                 }
+                case "arena" -> client.arenaQueue();
+                case "escort" -> client.startEscort();
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -310,7 +321,7 @@ public final class ConsoleClient {
         System.out.println("  quests | accept <id> | turnin <id>  ach (achievements)");
         System.out.println("  market | list <slot> <price> | mbuy <id>   merc | hire <id>");
         System.out.println("  friends | addf <name> | delf <name>   claim <mailId>");
-        System.out.println("  war | declare <countryId>");
+        System.out.println("  war | declare <countryId>   arena (queue duel)   escort (mission)");
         System.out.println("  country create <name> | list | join <id> | leave | info");
         System.out.println("  quit");
     }

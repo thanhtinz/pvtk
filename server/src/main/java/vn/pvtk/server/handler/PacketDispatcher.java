@@ -75,6 +75,14 @@ public final class PacketDispatcher {
         WarHandler war = new WarHandler();
         register(Opcodes.WAR_DECLARE, war);
         register(Opcodes.WAR_STATUS, war);
+
+        ArenaHandler arena = new ArenaHandler();
+        register(Opcodes.ARENA_QUEUE, arena);
+        register(Opcodes.ARENA_STATUS, arena);
+
+        EscortHandler escort = new EscortHandler();
+        register(Opcodes.ESCORT_START, escort);
+        register(Opcodes.ESCORT_STATUS, escort);
     }
 
     public void register(int opcode, PacketHandler handler) {
