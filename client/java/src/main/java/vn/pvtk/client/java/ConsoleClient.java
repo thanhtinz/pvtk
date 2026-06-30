@@ -132,6 +132,17 @@ public final class ConsoleClient {
                 System.out.println("[escort] " + (e.active() ? "đang hộ tống đến " + e.destMap()
                         + " (" + e.progress() + "%)" : "") + " " + e.message());
             }
+            @Override public void onBattleUpdate(vn.pvtk.protocol.message.Messages.BattleUpdate b) {
+                System.out.println("[battle] vòng " + b.round() + " - " + b.message());
+                b.actions().forEach(a -> System.out.println("    #" + a.attacker() + " -> #" + a.target()
+                        + " dmg " + a.damage() + " (hp " + a.targetHp() + ")" + (a.died() ? " DIE" : "")));
+                b.combatants().forEach(u -> System.out.println("    [" + u.index() + "] " + u.name()
+                        + (u.side() == 0 ? " (ta)" : " (địch)") + " " + u.hp() + "/" + u.maxHp()
+                        + " MP " + u.mp()));
+                if (b.roundState() == 0) {
+                    System.out.println("    -> dùng: plan <indexĐịch> [skillId]");
+                }
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -276,6 +287,22 @@ public final class ConsoleClient {
                 }
                 case "arena" -> client.arenaQueue();
                 case "escort" -> client.startEscort();
+                case "battle" -> {
+                    if (t.length > 1) client.enterBattle(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: battle <monsterId>  (id từ 'who' khi ở map 3)");
+                }
+                case "plan" -> {
+                    String[] a = t.length > 1 ? t[1].split("\\s+") : new String[0];
+                    var b = client.state().battle();
+                    if (b == null) {
+                        System.out.println("Bạn không ở trong trận.");
+                    } else if (a.length >= 1) {
+                        client.battlePlan(b.round(), Integer.parseInt(a[0]),
+                                a.length > 1 ? Integer.parseInt(a[1]) : 0);
+                    } else {
+                        System.out.println("usage: plan <indexĐịch> [skillId]");
+                    }
+                }
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -322,6 +349,7 @@ public final class ConsoleClient {
         System.out.println("  market | list <slot> <price> | mbuy <id>   merc | hire <id>");
         System.out.println("  friends | addf <name> | delf <name>   claim <mailId>");
         System.out.println("  war | declare <countryId>   arena (queue duel)   escort (mission)");
+        System.out.println("  battle <monsterId> | plan <enemyIndex> [skillId]   (turn-based)");
         System.out.println("  country create <name> | list | join <id> | leave | info");
         System.out.println("  quit");
     }

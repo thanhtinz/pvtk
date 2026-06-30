@@ -83,6 +83,10 @@ public final class PacketDispatcher {
         EscortHandler escort = new EscortHandler();
         register(Opcodes.ESCORT_START, escort);
         register(Opcodes.ESCORT_STATUS, escort);
+
+        BattleHandler battle = new BattleHandler();
+        register(Opcodes.BATTLE_ENTER, battle);
+        register(Opcodes.BATTLE_PLAN, battle);
     }
 
     public void register(int opcode, PacketHandler handler) {

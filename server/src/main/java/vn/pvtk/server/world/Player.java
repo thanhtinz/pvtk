@@ -32,6 +32,7 @@ public final class Player {
     private volatile int arenaOpponentId;
     private volatile boolean escortActive;
     private volatile int escortDestMap;
+    private volatile int battleId;
 
     private final Inventory inventory;
     private final java.util.Set<Integer> learnedSkills = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -208,6 +209,25 @@ public final class Player {
     public void clearEscort() {
         this.escortActive = false;
         this.escortDestMap = 0;
+    }
+
+    // --- turn battle ---
+    public int battleId() {
+        return battleId;
+    }
+
+    public void battleId(int id) {
+        this.battleId = id;
+    }
+
+    public boolean inBattle() {
+        return battleId != 0;
+    }
+
+    /** Writes the player's surviving HP/MP back after a battle round. */
+    public void syncFromBattle(int newHp, int newMp) {
+        this.hp = Math.max(0, Math.min(maxHp, newHp));
+        this.mp = Math.max(0, Math.min(maxMp, newMp));
     }
 
     public int exp() {

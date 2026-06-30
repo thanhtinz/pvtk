@@ -178,6 +178,15 @@ public final class GameClient implements ConnectionListener {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ESCORT_STATUS).putShort(0));
     }
 
+    // --- Turn-based battle ---
+    public void enterBattle(int monsterId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.BattleEnter(monsterId).toPacket());
+    }
+
+    public void battlePlan(int round, int targetIndex, int skillId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.BattlePlan(round, targetIndex, skillId).toPacket());
+    }
+
     // --- Quests ---
     public void requestQuests() {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.QUEST_LIST).putShort(0));
@@ -294,6 +303,11 @@ public final class GameClient implements ConnectionListener {
                     vn.pvtk.protocol.message.Messages.ArenaStatus.from(p));
             case Opcodes.ESCORT_STATUS -> listener.onEscortStatus(
                     vn.pvtk.protocol.message.Messages.EscortStatus.from(p));
+            case Opcodes.BATTLE_UPDATE -> {
+                var bu = vn.pvtk.protocol.message.Messages.BattleUpdate.from(p);
+                state.setBattle(bu);
+                listener.onBattleUpdate(bu);
+            }
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

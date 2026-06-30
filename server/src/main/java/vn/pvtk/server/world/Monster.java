@@ -19,6 +19,7 @@ public final class Monster {
     private int y;
     private int hp;
     private volatile boolean dead;
+    private volatile boolean locked; // engaged in a turn-based battle
     private long deadAtMs;
 
     public Monster(MonsterDef def, int x, int y) {
@@ -53,6 +54,22 @@ public final class Monster {
 
     public boolean isDead() {
         return dead;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void locked(boolean locked) {
+        this.locked = locked;
+    }
+
+    /** Marks the monster dead immediately (e.g. defeated in a turn battle). */
+    public void kill(long nowMs) {
+        this.hp = 0;
+        this.dead = true;
+        this.locked = false;
+        this.deadAtMs = nowMs;
     }
 
     public long deadAtMs() {

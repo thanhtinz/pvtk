@@ -100,6 +100,9 @@ public final class Opcodes {
     public static final int ARENA_STATUS        = 14528; // arena: status / result push
     public static final int ESCORT_START        = 14510; // escort: begin mission
     public static final int ESCORT_STATUS       = 14514; // escort: status / event push
+    public static final int BATTLE_ENTER        = 12501; // turn battle: enter (EnterLocalBattle)
+    public static final int BATTLE_PLAN         = 12503; // turn battle: submit round plan
+    public static final int BATTLE_UPDATE       = 12508; // turn battle: round result / model
 
     static {
         register(5000, "CHECK_EDITION_MSG");

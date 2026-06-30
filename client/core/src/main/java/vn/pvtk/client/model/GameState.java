@@ -15,6 +15,21 @@ public final class GameState {
     private volatile Entity self;
     private final Map<Integer, Entity> others = new ConcurrentHashMap<>();
     private final InventoryView inventory = new InventoryView();
+    private volatile vn.pvtk.protocol.message.Messages.BattleUpdate battle;
+
+    /** The current turn-battle state, or null if not in a battle. */
+    public vn.pvtk.protocol.message.Messages.BattleUpdate battle() {
+        return battle;
+    }
+
+    public void setBattle(vn.pvtk.protocol.message.Messages.BattleUpdate b) {
+        // roundState 0 = ongoing; anything else ends the battle.
+        this.battle = (b != null && b.roundState() == 0) ? b : null;
+    }
+
+    public boolean inBattle() {
+        return battle != null;
+    }
 
     public InventoryView inventory() {
         return inventory;

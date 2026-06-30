@@ -910,4 +910,103 @@ public final class Messages {
             return new EscortStatus(p.getBool(), p.getUShort(), p.getString(), p.getString());
         }
     }
+
+    // ==================================================================
+    // Turn-based battle (BATTLE_ENTER 12501, BATTLE_PLAN 12505, BATTLE_UPDATE 12506)
+    //
+    // Faithful to the original's plan-then-resolve model: the client enters a
+    // battle, then each round submits a plan; the server resolves every actor in
+    // speed order and replies with the action log + updated combatant states until
+    // one side is wiped out.
+    // ==================================================================
+
+    /** One participant in a battle. side 0 = the player's team, 1 = enemies. */
+    public record Combatant(int index, String name, int side, int hp, int maxHp, int mp, int maxMp) {
+        public boolean alive() {
+            return hp > 0;
+        }
+
+        public void write(Packet p) {
+            p.putByte(index).putString(name).putByte(side)
+                    .putInt(hp).putInt(maxHp).putInt(mp).putInt(maxMp);
+        }
+
+        public static Combatant read(Packet p) {
+            return new Combatant(p.getUByte(), p.getString(), p.getUByte(),
+                    p.getInt(), p.getInt(), p.getInt(), p.getInt());
+        }
+    }
+
+    /** One resolved action within a round (for playback / the combat log). */
+    public record BattleAction(int attacker, int target, int damage, int targetHp, boolean died, int skillId) {
+        public void write(Packet p) {
+            p.putByte(attacker).putByte(target).putInt(damage).putInt(targetHp)
+                    .putBool(died).putInt(skillId);
+        }
+
+        public static BattleAction read(Packet p) {
+            return new BattleAction(p.getUByte(), p.getUByte(), p.getInt(), p.getInt(),
+                    p.getBool(), p.getInt());
+        }
+    }
+
+    /** Client → server: enter a turn battle against a monster on the current map. */
+    public record BattleEnter(int monsterId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.BATTLE_ENTER).putInt(monsterId);
+        }
+
+        public static BattleEnter from(Packet p) {
+            return new BattleEnter(p.getInt());
+        }
+    }
+
+    /** Client → server: the player's chosen action for {@code round}. */
+    public record BattlePlan(int round, int targetIndex, int skillId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.BATTLE_PLAN).putShort(round).putByte(targetIndex).putInt(skillId);
+        }
+
+        public static BattlePlan from(Packet p) {
+            return new BattlePlan(p.getUShort(), p.getUByte(), p.getInt());
+        }
+    }
+
+    /** roundState: 0 ongoing, 1 win, 2 lose, 3 error. */
+    public record BattleUpdate(int battleId, int round, int roundState,
+                               List<Combatant> combatants, List<BattleAction> actions,
+                               int rewardExp, int rewardGold, String message) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.BATTLE_UPDATE)
+                    .putInt(battleId).putShort(round).putByte(roundState);
+            p.putByte(combatants.size());
+            for (Combatant c : combatants) {
+                c.write(p);
+            }
+            p.putByte(actions.size());
+            for (BattleAction a : actions) {
+                a.write(p);
+            }
+            p.putInt(rewardExp).putInt(rewardGold).putString(message == null ? "" : message);
+            return p;
+        }
+
+        public static BattleUpdate from(Packet p) {
+            int battleId = p.getInt();
+            int round = p.getUShort();
+            int roundState = p.getUByte();
+            int nc = p.getUByte();
+            List<Combatant> combatants = new ArrayList<>(nc);
+            for (int i = 0; i < nc; i++) {
+                combatants.add(Combatant.read(p));
+            }
+            int na = p.getUByte();
+            List<BattleAction> actions = new ArrayList<>(na);
+            for (int i = 0; i < na; i++) {
+                actions.add(BattleAction.read(p));
+            }
+            return new BattleUpdate(battleId, round, roundState, combatants, actions,
+                    p.getInt(), p.getInt(), p.getString());
+        }
+    }
 }

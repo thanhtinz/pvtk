@@ -470,6 +470,48 @@ class GameplaySystemsTest {
     }
 
     @Test
+    void turnBasedBattleResolvesToVictory() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger updates = new java.util.concurrent.atomic.AtomicInteger();
+        AtomicReference<vn.pvtk.protocol.message.Messages.BattleUpdate> last = new AtomicReference<>();
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onBattleUpdate(vn.pvtk.protocol.message.Messages.BattleUpdate b) {
+                last.set(b);
+                updates.incrementAndGet();
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("KiemKhach", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+
+        c.jumpMap(3);
+        assertTrue(await(() -> c.state().others().stream().anyMatch(Entity::isMonster)), "monsters");
+        Entity monster = c.state().others().stream().filter(Entity::isMonster).findFirst().orElseThrow();
+
+        c.enterBattle(monster.id);
+        assertTrue(await(() -> last.get() != null && !last.get().combatants().isEmpty()),
+                "battle model should arrive on enter");
+        // The enemy combatant is the first unit on side 1.
+        int enemyIndex = last.get().combatants().stream()
+                .filter(u -> u.side() == 1).findFirst().orElseThrow().index();
+
+        // Submit a plan each round (basic attack on the enemy) until the fight ends.
+        for (int i = 0; i < 60; i++) {
+            var cur = last.get();
+            if (cur == null || cur.roundState() != 0) {
+                break;
+            }
+            int before = updates.get();
+            c.battlePlan(cur.round(), enemyIndex, 0);
+            await(() -> updates.get() > before);
+        }
+        assertTrue(await(() -> last.get() != null && last.get().roundState() == 1),
+                "battle should end in victory");
+        assertTrue(last.get().rewardExp() >= 0, "victory should carry rewards");
+        assertTrue(await(() -> !c.state().inBattle()), "client should leave battle when it ends");
+        c.disconnect();
+    }
+
+    @Test
     void escortCompletesOnArrival() throws Exception {
         AtomicReference<EscortStatus> esc = new AtomicReference<>();
         GameClient c = new GameClient(new GameClientListener() {

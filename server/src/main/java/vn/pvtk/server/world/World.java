@@ -86,6 +86,78 @@ public final class World {
     }
 
     // ------------------------------------------------------------------
+    // Turn-based battle
+    // ------------------------------------------------------------------
+
+    private final Map<Integer, Battle> battles = new ConcurrentHashMap<>();
+    private final java.util.concurrent.atomic.AtomicInteger battleIds =
+            new java.util.concurrent.atomic.AtomicInteger(1);
+
+    /** Starts a turn-based battle against a monster; sends the battle model to the client. */
+    public void enterBattle(PlayerSession session, int monsterId) {
+        Player p = session.player();
+        if (p.inBattle()) {
+            return;
+        }
+        Monster monster = monstersById.get(monsterId);
+        if (monster == null || monster.isDead() || monster.isLocked()) {
+            return;
+        }
+        monster.locked(true);
+        Pet pet = petsByOwner.get(p.id());
+        Battle battle = new Battle(battleIds.getAndIncrement(), data, p, pet, List.of(monster));
+        battles.put(battle.id(), battle);
+        p.battleId(battle.id());
+        session.send(battle.enterUpdate().toPacket());
+    }
+
+    /** Resolves one battle round from the player's plan and applies the outcome. */
+    public void battlePlan(PlayerSession session, int targetIndex, int skillId) {
+        Player p = session.player();
+        Battle battle = battles.get(p.battleId());
+        if (battle == null) {
+            return;
+        }
+        var update = battle.resolve(targetIndex, skillId);
+        session.send(update.toPacket());
+
+        if (battle.status() == Battle.WIN) {
+            for (int enemyId : battle.enemyEntityIds()) {
+                Monster m = monstersById.get(enemyId);
+                if (m != null) {
+                    m.kill(System.currentTimeMillis());
+                    broadcastToMap(map(p.mapId()), new Messages.Despawn(enemyId).toPacket(), -1);
+                }
+            }
+            p.addGold(battle.rewardGold());
+            p.addExp(battle.rewardExp());
+            p.addKill();
+            p.incrementKillQuests();
+            endBattle(session, battle);
+            session.send(new Messages.Spawn(p.toState()).toPacket());
+            checkAchievements(session);
+        } else if (battle.status() == Battle.LOSE) {
+            for (int enemyId : battle.enemyEntityIds()) {
+                Monster m = monstersById.get(enemyId);
+                if (m != null) {
+                    m.locked(false);
+                }
+            }
+            p.revive();
+            MapInstance map = map(p.mapId());
+            p.moveTo(map.spawnX(), map.spawnY(), 0);
+            broadcastToMap(map, new Messages.MoveUpdate(p.id(), p.x(), p.y(), 0).toPacket(), -1);
+            endBattle(session, battle);
+            session.send(new Messages.Spawn(p.toState()).toPacket());
+        }
+    }
+
+    private void endBattle(PlayerSession session, Battle battle) {
+        battles.remove(battle.id());
+        session.player().battleId(0);
+    }
+
+    // ------------------------------------------------------------------
     // Escort caravan (a non-combat follower delivered to a destination map)
     // ------------------------------------------------------------------
 
@@ -260,11 +332,14 @@ public final class World {
     // ------------------------------------------------------------------
 
     private void spawnInitialMonsters() {
-        List<MonsterDef> defs = data.monsterList();
+        List<MonsterDef> defs = new ArrayList<>(data.monsterList());
         if (defs.isEmpty()) {
             return;
         }
-        // Populate the wilderness map (3) with a handful of monsters from the DB.
+        // Weakest first, so the starter wilderness has beatable monsters.
+        defs.sort((a, b) -> a.level() != b.level()
+                ? Integer.compare(a.level(), b.level())
+                : Integer.compare(a.hpMax(), b.hpMax()));
         MapInstance wild = maps.get(3);
         int count = Math.min(12, defs.size());
         for (int i = 0; i < count; i++) {
@@ -311,7 +386,7 @@ public final class World {
         for (Map.Entry<Integer, List<Monster>> e : monstersByMap.entrySet()) {
             MapInstance map = maps.get(e.getKey());
             for (Monster m : e.getValue()) {
-                if (m.isDead()) {
+                if (m.isDead() || m.isLocked()) {
                     continue;
                 }
                 PlayerSession victimSession = null;
@@ -354,7 +429,7 @@ public final class World {
             MapInstance map = map(pet.mapId());
             Monster target = null;
             for (Monster m : monstersOnMap(pet.mapId())) {
-                if (!m.isDead() && Math.abs(m.x() - pet.x()) <= 4 && Math.abs(m.y() - pet.y()) <= 4) {
+                if (!m.isDead() && !m.isLocked() && Math.abs(m.x() - pet.x()) <= 4 && Math.abs(m.y() - pet.y()) <= 4) {
                     target = m;
                     break;
                 }
@@ -475,7 +550,7 @@ public final class World {
         }
 
         Monster monster = monstersById.get(targetId);
-        if (monster != null && !monster.isDead()) {
+        if (monster != null && !monster.isDead() && !monster.isLocked()) {
             int dmg = Math.max(1, atk - 2);
             boolean killed = monster.damage(dmg, nowMs);
             broadcastToMap(map, new CombatEvent(attacker.id(), targetId, dmg, monster.hp(), killed).toPacket(), -1);

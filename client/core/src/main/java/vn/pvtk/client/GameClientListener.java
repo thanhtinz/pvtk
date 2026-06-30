@@ -7,6 +7,7 @@ import vn.pvtk.protocol.message.Messages.CountryList;
 import vn.pvtk.protocol.message.Messages.AchievementList;
 import vn.pvtk.protocol.message.Messages.AchievementUnlocked;
 import vn.pvtk.protocol.message.Messages.ArenaStatus;
+import vn.pvtk.protocol.message.Messages.BattleUpdate;
 import vn.pvtk.protocol.message.Messages.EscortStatus;
 import vn.pvtk.protocol.message.Messages.FriendList;
 import vn.pvtk.protocol.message.Messages.MailList;
@@ -91,6 +92,10 @@ public interface GameClientListener {
     }
 
     default void onEscortStatus(EscortStatus escort) {
+    }
+
+    /** A turn-battle round (or the initial model) arrived; re-read {@code state().battle()}. */
+    default void onBattleUpdate(BattleUpdate battle) {
     }
 
     default void onDisconnected(String reason) {

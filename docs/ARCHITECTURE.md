@@ -117,21 +117,23 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
   delivered to the destination map for a gold/exp reward (`EscortHandler`,
   `World.startEscort/checkEscortArrival`). Other players can **rob** the caravan:
   it has HP and, once destroyed, the robber loots gold and the owner's mission
-  fails (`World.attack` escort branch).
+  fails (`World.attack` escort branch);
+* **turn-based battle** — the original's plan-then-resolve combat, rebuilt
+  faithfully: the player enters a battle against a monster (`BATTLE_ENTER`), and
+  each round submits a plan (target + skill, `BATTLE_PLAN`); the server resolves
+  every living combatant in **speed order**, applies skill/MP costs and damage,
+  and returns the action log plus updated combatant states (`BATTLE_UPDATE`) until
+  one side is wiped out — victory grants exp/gold and despawns the monster, defeat
+  revives the player at the map spawn (`Battle`, `World.enterBattle/battlePlan`).
+  The real-time tap-combat remains available; the libGDX client now starts a turn
+  battle when you tap a monster.
 
-Each system is covered by an integration test in `client/core` that drives the
-real server with real clients (29 tests total).
+Each system is covered by an integration test in `client/core` (30 tests total).
 
-## Remaining deep ports
+## Remaining deep port
 
-Two pieces of the original game are large, specialised efforts rather than
-incremental handlers:
+One piece of the original remains a large, specialised effort:
 
-* **Turn-based battle engine** — the original combat (opcodes `12501
-  EnterLocalBattle`, `12505 BattlePlan`, `12506 BattleUpdate`, ...) is a
-  round-based, plan-then-resolve system. This rewrite uses a clean real-time
-  combat model over the same opcode space; reproducing the exact turn engine is
-  future work.
 * **Sprite / animation rendering** — the `.png` files in `assets/` are real
   image sheets, but the proprietary `.spr` / `.fr` / `.pd` / `.pl` files describe
   how to slice, animate and palette-swap them (see the original `h`/`az`/`bo`

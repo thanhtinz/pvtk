@@ -121,6 +121,21 @@ public final class PvtkGame extends ApplicationAdapter {
             font.draw(batch, msg, 8, y);
             y -= 16;
         }
+
+        // Turn-battle overlay.
+        var battle = client.state().battle();
+        if (battle != null) {
+            int by = Gdx.graphics.getHeight() - 80;
+            font.setColor(Color.YELLOW);
+            font.draw(batch, "TRẬN ĐẤU - vòng " + battle.round()
+                    + "  (chạm địch để đánh)", 8, by + 18);
+            for (var u : battle.combatants()) {
+                font.setColor(u.side() == 0 ? Color.GOLD : Color.SALMON);
+                font.draw(batch, "[" + u.index() + "] " + u.name()
+                        + " " + u.hp() + "/" + u.maxHp(), 8, by);
+                by -= 16;
+            }
+        }
         batch.end();
     }
 
@@ -234,9 +249,19 @@ public final class PvtkGame extends ApplicationAdapter {
         }
     }
 
-    /** Tap a monster to attack it; tap empty ground to move there. */
+    /**
+     * In a turn battle, a tap submits a plan against the first living enemy.
+     * Otherwise, tapping a monster starts a turn battle and tapping ground moves.
+     */
     private final class TapHandler extends InputAdapter {
         @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            var battle = client.state().battle();
+            if (battle != null) {
+                battle.combatants().stream().filter(u -> u.side() == 1 && u.hp() > 0)
+                        .findFirst().ifPresent(enemy ->
+                                client.battlePlan(battle.round(), enemy.index(), 0));
+                return true;
+            }
             Vector3 world = camera.unproject(new Vector3(screenX, screenY, 0));
             int tx = (int) (world.x / config.tileSize);
             int ty = (int) (world.y / config.tileSize);
@@ -249,7 +274,7 @@ public final class PvtkGame extends ApplicationAdapter {
                 }
             }
             if (target != null) {
-                client.attack(target.id);
+                client.enterBattle(target.id); // faithful turn-based combat
             } else {
                 client.move(tx, ty, 0);
             }
