@@ -100,7 +100,7 @@ public final class World {
         p.startEscort(destMap);
         MapInstance map = map(p.mapId());
         Pet caravan = new Pet(p.id(), "Tiêu Xa", 0, p.mapId(),
-                map.clampX(p.x() - 1), map.clampY(p.y()), Messages.KIND_NPC);
+                map.clampX(p.x() - 1), map.clampY(p.y()), Messages.KIND_NPC, 300);
         escortByOwner.put(p.id(), caravan);
         broadcastToMap(map, new Messages.Spawn(caravan.toState()).toPacket(), -1);
         session.send(new Messages.EscortStatus(true, 0, map(destMap).name(),
@@ -493,6 +493,28 @@ public final class World {
                 checkAchievements(session);
             }
             return;
+        }
+
+        // Escort robbery: target is someone else's caravan.
+        for (Pet caravan : escortByOwner.values()) {
+            if (caravan.id() == targetId && caravan.ownerId() != attacker.id()) {
+                boolean destroyed = caravan.damage(atk);
+                broadcastToMap(map, new CombatEvent(attacker.id(), targetId, atk, caravan.hp(), destroyed).toPacket(), -1);
+                if (destroyed) {
+                    int loot = 200;
+                    attacker.addGold(loot);
+                    session.send(new Messages.Spawn(attacker.toState()).toPacket());
+                    PlayerSession ownerSession = sessions.byPlayerId(caravan.ownerId());
+                    broadcastToMap(map, new Messages.Despawn(caravan.id()).toPacket(), -1);
+                    escortByOwner.remove(caravan.ownerId());
+                    if (ownerSession != null && ownerSession.player() != null) {
+                        ownerSession.player().clearEscort();
+                        ownerSession.send(new Messages.EscortStatus(false, 0, "",
+                                "Tiêu xa của bạn đã bị " + attacker.name() + " cướp!").toPacket());
+                    }
+                }
+                return;
+            }
         }
 
         // PvP: target is another player on the same map.

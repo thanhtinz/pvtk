@@ -18,12 +18,14 @@ public final class Pet {
     private int mapId;
     private int x;
     private int y;
+    private int hp;
+    private int maxHp;
 
     public Pet(int ownerId, String name, int atkBonus, int mapId, int x, int y) {
-        this(ownerId, name, atkBonus, mapId, x, y, Messages.KIND_PET);
+        this(ownerId, name, atkBonus, mapId, x, y, Messages.KIND_PET, 0);
     }
 
-    public Pet(int ownerId, String name, int atkBonus, int mapId, int x, int y, int kind) {
+    public Pet(int ownerId, String name, int atkBonus, int mapId, int x, int y, int kind, int hp) {
         this.id = IDS.getAndIncrement();
         this.ownerId = ownerId;
         this.name = name;
@@ -32,6 +34,25 @@ public final class Pet {
         this.x = x;
         this.y = y;
         this.kind = kind;
+        this.hp = hp;
+        this.maxHp = hp;
+    }
+
+    public int hp() {
+        return hp;
+    }
+
+    public boolean isDestructible() {
+        return maxHp > 0;
+    }
+
+    /** Damages a destructible follower (e.g. a caravan). Returns true if destroyed. */
+    public boolean damage(int amount) {
+        if (maxHp <= 0) {
+            return false;
+        }
+        hp = Math.max(0, hp - Math.max(1, amount));
+        return hp == 0;
     }
 
     public int id() {
@@ -65,7 +86,9 @@ public final class Pet {
     }
 
     public EntityState toState() {
-        // Followers have no HP bar of their own; surface the bonus as the "level" field.
-        return new EntityState(id, name, mapId, x, y, 0, 1, 1, atkBonus, kind);
+        // Pets surface their bonus as "level"; destructible followers show real HP.
+        int shownHp = maxHp > 0 ? hp : 1;
+        int shownMax = maxHp > 0 ? maxHp : 1;
+        return new EntityState(id, name, mapId, x, y, 0, shownHp, shownMax, atkBonus, kind);
     }
 }

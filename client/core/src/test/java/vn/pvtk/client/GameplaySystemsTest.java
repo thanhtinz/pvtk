@@ -492,6 +492,40 @@ class GameplaySystemsTest {
     }
 
     @Test
+    void escortCaravanCanBeRobbed() throws Exception {
+        AtomicReference<EscortStatus> esc = new AtomicReference<>();
+        GameClient a = new GameClient(new GameClientListener() {
+            @Override public void onEscortStatus(EscortStatus e) {
+                esc.set(e);
+            }
+        });
+        a.connect("127.0.0.1", port);
+        a.login("TieuChu", "", 0);
+        assertTrue(await(() -> a.state().self() != null), "A login");
+        a.startEscort();
+        assertTrue(await(() -> esc.get() != null && esc.get().active()), "escort started");
+
+        // B sees A's caravan (an NPC entity) and attacks it until destroyed.
+        GameClient b = new GameClient(new GameClientListener() { });
+        b.connect("127.0.0.1", port);
+        b.login("CuopTieu", "", 0);
+        assertTrue(await(() -> b.state().others().stream()
+                .anyMatch(e -> e.kind == Messages.KIND_NPC)), "B should see the caravan");
+        int caravanId = b.state().others().stream()
+                .filter(e -> e.kind == Messages.KIND_NPC).findFirst().orElseThrow().id;
+
+        for (int i = 0; i < 60 && esc.get().active(); i++) {
+            b.attack(caravanId);
+            Thread.sleep(50);
+        }
+        assertTrue(await(() -> esc.get() != null && !esc.get().active()
+                        && esc.get().message().contains("cướp")),
+                "owner should be told the caravan was robbed");
+        a.disconnect();
+        b.disconnect();
+    }
+
+    @Test
     void monsterAggroDamagesNearbyPlayer() throws Exception {
         GameClient c = new GameClient(new GameClientListener() { });
         c.connect("127.0.0.1", port);

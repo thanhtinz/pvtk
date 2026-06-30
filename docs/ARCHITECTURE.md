@@ -115,15 +115,29 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
   `World.arenaQueue/resolveArena`);
 * **escort** — accept a caravan mission in town; an NPC caravan follows you and is
   delivered to the destination map for a gold/exp reward (`EscortHandler`,
-  `World.startEscort/checkEscortArrival`).
+  `World.startEscort/checkEscortArrival`). Other players can **rob** the caravan:
+  it has HP and, once destroyed, the robber loots gold and the owner's mission
+  fails (`World.attack` escort branch).
 
 Each system is covered by an integration test in `client/core` that drives the
-real server with real clients (28 tests total).
+real server with real clients (29 tests total).
 
-**Roadmap (opcodes already catalogued in `OPCODES.md`):** turn-based skill
-battles matching the original engine, caravan robbery PvP, and the remaining
-catalogued opcodes. Each maps to a documented opcode and slots into the
-dispatcher as a new `PacketHandler`.
+## Remaining deep ports
+
+Two pieces of the original game are large, specialised efforts rather than
+incremental handlers:
+
+* **Turn-based battle engine** — the original combat (opcodes `12501
+  EnterLocalBattle`, `12505 BattlePlan`, `12506 BattleUpdate`, ...) is a
+  round-based, plan-then-resolve system. This rewrite uses a clean real-time
+  combat model over the same opcode space; reproducing the exact turn engine is
+  future work.
+* **Sprite / animation rendering** — the `.png` files in `assets/` are real
+  image sheets, but the proprietary `.spr` / `.fr` / `.pd` / `.pl` files describe
+  how to slice, animate and palette-swap them (see the original `h`/`az`/`bo`
+  image classes). The clients currently render the real map artwork plus
+  colour-coded entity markers with HP bars and names; a faithful sprite engine
+  that decodes those formats is the remaining graphics work.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the
