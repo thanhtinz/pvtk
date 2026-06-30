@@ -39,6 +39,7 @@ public final class CountryHandler implements PacketHandler {
                 } else {
                     Country c = reg.create(name.trim(), p);
                     reply(session, Opcodes.COUNTRY_CREATE, true, "Lập bang thành công", c);
+                    ctx.world().checkAchievements(session);
                     log.info("{} founded country '{}' (#{})", p.name(), c.name(), c.id());
                 }
             }
@@ -56,6 +57,7 @@ public final class CountryHandler implements PacketHandler {
                 } else if (reg.join(id, p)) {
                     Country c = reg.get(id);
                     reply(session, Opcodes.COUNTRY_JOIN, true, "Gia nhập thành công", c);
+                    ctx.world().checkAchievements(session);
                     log.info("{} joined country #{}", p.name(), id);
                 } else {
                     reply(session, Opcodes.COUNTRY_JOIN, false, "Bang không tồn tại", null);

@@ -128,6 +128,46 @@ public final class GameClient implements ConnectionListener {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.MAIL_LIST).putShort(0));
     }
 
+    // --- Quests ---
+    public void requestQuests() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.QUEST_LIST).putShort(0));
+    }
+
+    public void acceptQuest(int questId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.QuestAction(questId).accept());
+    }
+
+    public void completeQuest(int questId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.QuestAction(questId).complete());
+    }
+
+    // --- Achievements ---
+    public void requestAchievements() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.ACHIEVE_LIST).putShort(0));
+    }
+
+    // --- Marketplace ---
+    public void requestMarket() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.MARKET_LIST).putShort(0));
+    }
+
+    public void marketSell(int bagSlot, int count, int price) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MarketSell(bagSlot, count, price).toPacket());
+    }
+
+    public void marketBuy(int listingId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MarketBuy(listingId).toPacket());
+    }
+
+    // --- Mercenary / pet ---
+    public void requestMercs() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.MERC_LIST).putShort(0));
+    }
+
+    public void hireMerc(int mercId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.MercBuy(mercId).toPacket());
+    }
+
     // --- Country / guild ---
     public void createCountry(String name) {
         connection.send(new vn.pvtk.protocol.message.Messages.CountryCreate(name).toPacket());
@@ -186,6 +226,16 @@ public final class GameClient implements ConnectionListener {
                     vn.pvtk.protocol.message.Messages.TeamUpdate.from(p));
             case Opcodes.MAIL_LIST -> listener.onMailList(
                     vn.pvtk.protocol.message.Messages.MailList.from(p));
+            case Opcodes.QUEST_LIST -> listener.onQuestList(
+                    vn.pvtk.protocol.message.Messages.QuestList.from(p));
+            case Opcodes.ACHIEVE_LIST -> listener.onAchievementList(
+                    vn.pvtk.protocol.message.Messages.AchievementList.from(p));
+            case Opcodes.ACHIEVE_UNLOCK -> listener.onAchievementUnlocked(
+                    vn.pvtk.protocol.message.Messages.AchievementUnlocked.from(p));
+            case Opcodes.MARKET_LIST -> listener.onMarketList(
+                    vn.pvtk.protocol.message.Messages.MarketList.from(p));
+            case Opcodes.MERC_LIST -> listener.onMercList(
+                    vn.pvtk.protocol.message.Messages.MercList.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

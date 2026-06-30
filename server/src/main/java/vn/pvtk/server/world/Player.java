@@ -25,8 +25,15 @@ public final class Player {
     private volatile int maxMp;
     private volatile int teamId;
 
+    private volatile int petBonus;
+    private volatile String petName = "";
+    private volatile int totalKills;
+
     private final Inventory inventory;
     private final java.util.Set<Integer> learnedSkills = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Map<Integer, Integer> questProgress = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Set<Integer> completedQuests = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Set<Integer> unlockedAchievements = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public Player(String name, int mapId, int x, int y, Inventory inventory) {
         this.id = IDS.getAndIncrement();
@@ -92,6 +99,64 @@ public final class Player {
         return learnedSkills.contains(skillId);
     }
 
+    // --- pets / mercenaries ---
+    public int petBonus() {
+        return petBonus;
+    }
+
+    public String petName() {
+        return petName;
+    }
+
+    public void setPet(String name, int bonus) {
+        this.petName = name;
+        this.petBonus = bonus;
+    }
+
+    // --- quests ---
+    public java.util.Map<Integer, Integer> questProgress() {
+        return questProgress;
+    }
+
+    public java.util.Set<Integer> completedQuests() {
+        return completedQuests;
+    }
+
+    public boolean hasQuest(int id) {
+        return questProgress.containsKey(id);
+    }
+
+    public void acceptQuest(int id) {
+        questProgress.putIfAbsent(id, 0);
+    }
+
+    public int questProgressOf(int id) {
+        return questProgress.getOrDefault(id, 0);
+    }
+
+    /** Advances every active KILL-type quest; quest definitions decide the target. */
+    public void incrementKillQuests() {
+        questProgress.replaceAll((id, prog) -> prog + 1);
+    }
+
+    public void completeQuest(int id) {
+        questProgress.remove(id);
+        completedQuests.add(id);
+    }
+
+    // --- achievements / stats ---
+    public int totalKills() {
+        return totalKills;
+    }
+
+    public int addKill() {
+        return ++totalKills;
+    }
+
+    public java.util.Set<Integer> unlockedAchievements() {
+        return unlockedAchievements;
+    }
+
     public int exp() {
         return exp;
     }
@@ -112,9 +177,9 @@ public final class Player {
         this.countryId = countryId;
     }
 
-    /** Base attack plus equipment bonus. */
+    /** Base attack plus equipment and pet bonuses. */
     public int attackPower() {
-        return 10 + level * 2 + (inventory != null ? inventory.attackBonus() : 0);
+        return 10 + level * 2 + petBonus + (inventory != null ? inventory.attackBonus() : 0);
     }
 
     public int defense() {

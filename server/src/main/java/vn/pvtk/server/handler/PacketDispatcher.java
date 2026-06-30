@@ -50,6 +50,21 @@ public final class PacketDispatcher {
         MailHandler mail = new MailHandler();
         register(Opcodes.MAIL_SEND, mail);
         register(Opcodes.MAIL_LIST, mail);
+
+        QuestHandler quest = new QuestHandler();
+        register(Opcodes.QUEST_LIST, quest);
+        register(Opcodes.QUEST_ACCEPT, quest);
+        register(Opcodes.QUEST_COMPLETE, quest);
+        register(Opcodes.ACHIEVE_LIST, new AchievementHandler());
+
+        MarketHandler market = new MarketHandler();
+        register(Opcodes.MARKET_LIST, market);
+        register(Opcodes.MARKET_SELL, market);
+        register(Opcodes.MARKET_BUY, market);
+
+        MercenaryHandler merc = new MercenaryHandler();
+        register(Opcodes.MERC_LIST, merc);
+        register(Opcodes.MERC_BUY, merc);
     }
 
     public void register(int opcode, PacketHandler handler) {

@@ -33,6 +33,7 @@ public final class World {
     private final CountryRegistry countries = new CountryRegistry();
     private final TeamRegistry teams = new TeamRegistry();
     private final MailRegistry mail = new MailRegistry();
+    private final MarketRegistry market = new MarketRegistry();
     private final Map<Integer, MapInstance> maps = new ConcurrentHashMap<>();
     // monsters indexed globally by id and per-map for AOI.
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
@@ -66,8 +67,36 @@ public final class World {
         return mail;
     }
 
+    public MarketRegistry market() {
+        return market;
+    }
+
     public GameData data() {
         return data;
+    }
+
+    /**
+     * Re-evaluates a player's achievements after a relevant event and pushes any
+     * newly unlocked ones to their client.
+     */
+    public void checkAchievements(PlayerSession session) {
+        Player p = session.player();
+        for (var def : vn.pvtk.server.data.Achievements.all()) {
+            if (p.unlockedAchievements().contains(def.id())) {
+                continue;
+            }
+            boolean met = switch (def.kind()) {
+                case FIRST_KILL -> p.totalKills() >= 1;
+                case KILLS_10 -> p.totalKills() >= 10;
+                case REACH_LEVEL_5 -> p.level() >= 5;
+                case JOIN_GUILD -> p.countryId() != 0;
+                case GOLD_500 -> p.gold() >= 500;
+            };
+            if (met) {
+                p.unlockedAchievements().add(def.id());
+                session.send(new Messages.AchievementUnlocked(def.id(), def.name()).toPacket());
+            }
+        }
     }
 
     /** Sends a packet to every online member of {@code teamId}. */
@@ -218,12 +247,15 @@ public final class World {
             if (killed) {
                 attacker.addGold(monster.def().rewardMoney());
                 boolean leveled = attacker.addExp(monster.def().rewardExp());
+                attacker.addKill();
+                attacker.incrementKillQuests();
                 // Reward & possible level-up are reflected in the attacker's own state.
                 session.send(new Messages.Spawn(attacker.toState()).toPacket());
                 if (leveled) {
                     log.info("{} reached level {}", attacker.name(), attacker.level());
                 }
                 broadcastToMap(map, new Messages.Despawn(targetId).toPacket(), -1);
+                checkAchievements(session);
             }
             return;
         }

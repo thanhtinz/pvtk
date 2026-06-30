@@ -4,7 +4,12 @@ import vn.pvtk.protocol.message.Messages.ChatBroadcast;
 import vn.pvtk.protocol.message.Messages.CombatEvent;
 import vn.pvtk.protocol.message.Messages.CountryActionResult;
 import vn.pvtk.protocol.message.Messages.CountryList;
+import vn.pvtk.protocol.message.Messages.AchievementList;
+import vn.pvtk.protocol.message.Messages.AchievementUnlocked;
 import vn.pvtk.protocol.message.Messages.MailList;
+import vn.pvtk.protocol.message.Messages.MarketList;
+import vn.pvtk.protocol.message.Messages.MercList;
+import vn.pvtk.protocol.message.Messages.QuestList;
 import vn.pvtk.protocol.message.Messages.ShopListing;
 import vn.pvtk.protocol.message.Messages.SkillList;
 import vn.pvtk.protocol.message.Messages.TeamUpdate;
@@ -55,6 +60,21 @@ public interface GameClientListener {
     }
 
     default void onMailList(MailList mails) {
+    }
+
+    default void onQuestList(QuestList quests) {
+    }
+
+    default void onAchievementList(AchievementList achievements) {
+    }
+
+    default void onAchievementUnlocked(AchievementUnlocked achievement) {
+    }
+
+    default void onMarketList(MarketList market) {
+    }
+
+    default void onMercList(MercList mercs) {
     }
 
     default void onDisconnected(String reason) {

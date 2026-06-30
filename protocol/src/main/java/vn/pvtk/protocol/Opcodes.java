@@ -81,6 +81,16 @@ public final class Opcodes {
     public static final int TEAM_LEAVE          = 13507; // party: leave
     public static final int MAIL_SEND           = 11009; // mail: send
     public static final int MAIL_LIST           = 11007; // mail: mailbox list
+    public static final int QUEST_LIST          = 14512; // quests: list available + active
+    public static final int QUEST_ACCEPT        = 14502; // quests: accept
+    public static final int QUEST_COMPLETE      = 14503; // quests: turn in
+    public static final int ACHIEVE_LIST        = 11024; // achievements: list
+    public static final int ACHIEVE_UNLOCK      = 11025; // achievements: unlocked push
+    public static final int MARKET_LIST         = 13520; // marketplace: browse listings
+    public static final int MARKET_SELL         = 13518; // marketplace: consign an item
+    public static final int MARKET_BUY          = 13517; // marketplace: buy a listing
+    public static final int MERC_LIST           = 15503; // mercenary/pet: hireable list
+    public static final int MERC_BUY            = 15505; // mercenary/pet: hire
 
     static {
         register(5000, "CHECK_EDITION_MSG");

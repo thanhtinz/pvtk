@@ -587,4 +587,200 @@ public final class Messages {
             return new MailList(list);
         }
     }
+
+    // ==================================================================
+    // Quests (QUEST_LIST 14512, QUEST_ACCEPT 14502, QUEST_COMPLETE 14503)
+    // ==================================================================
+
+    /** state: 0 = available, 1 = active, 2 = completed. */
+    public record QuestEntry(int id, String name, String desc,
+                             int progress, int target, int state,
+                             int rewardExp, int rewardGold) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putString(desc)
+                    .putShort(progress).putShort(target).putByte(state)
+                    .putInt(rewardExp).putInt(rewardGold);
+        }
+
+        public static QuestEntry read(Packet p) {
+            return new QuestEntry(p.getInt(), p.getString(), p.getString(),
+                    p.getUShort(), p.getUShort(), p.getUByte(), p.getInt(), p.getInt());
+        }
+    }
+
+    public record QuestList(List<QuestEntry> quests) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.QUEST_LIST).putShort(quests.size());
+            for (QuestEntry q : quests) {
+                q.write(p);
+            }
+            return p;
+        }
+
+        public static QuestList from(Packet p) {
+            int n = p.getUShort();
+            List<QuestEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(QuestEntry.read(p));
+            }
+            return new QuestList(list);
+        }
+    }
+
+    public record QuestAction(int questId) {
+        public Packet accept() {
+            return new Packet(Opcodes.QUEST_ACCEPT).putInt(questId);
+        }
+
+        public Packet complete() {
+            return new Packet(Opcodes.QUEST_COMPLETE).putInt(questId);
+        }
+
+        public static QuestAction from(Packet p) {
+            return new QuestAction(p.getInt());
+        }
+    }
+
+    // ==================================================================
+    // Achievements (ACHIEVE_LIST 11024, ACHIEVE_UNLOCK 11025)
+    // ==================================================================
+
+    public record AchievementEntry(int id, String name, String desc, boolean unlocked) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putString(desc).putBool(unlocked);
+        }
+
+        public static AchievementEntry read(Packet p) {
+            return new AchievementEntry(p.getInt(), p.getString(), p.getString(), p.getBool());
+        }
+    }
+
+    public record AchievementList(List<AchievementEntry> achievements) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.ACHIEVE_LIST).putShort(achievements.size());
+            for (AchievementEntry a : achievements) {
+                a.write(p);
+            }
+            return p;
+        }
+
+        public static AchievementList from(Packet p) {
+            int n = p.getUShort();
+            List<AchievementEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(AchievementEntry.read(p));
+            }
+            return new AchievementList(list);
+        }
+    }
+
+    public record AchievementUnlocked(int id, String name) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.ACHIEVE_UNLOCK).putInt(id).putString(name);
+        }
+
+        public static AchievementUnlocked from(Packet p) {
+            return new AchievementUnlocked(p.getInt(), p.getString());
+        }
+    }
+
+    // ==================================================================
+    // Marketplace (MARKET_LIST 13520, MARKET_SELL 13518, MARKET_BUY 13517)
+    // ==================================================================
+
+    public record MarketListing(int listingId, String sellerName,
+                                int itemId, String itemName, int count, int price) {
+        public void write(Packet p) {
+            p.putInt(listingId).putString(sellerName)
+                    .putInt(itemId).putString(itemName).putShort(count).putInt(price);
+        }
+
+        public static MarketListing read(Packet p) {
+            return new MarketListing(p.getInt(), p.getString(),
+                    p.getInt(), p.getString(), p.getUShort(), p.getInt());
+        }
+    }
+
+    public record MarketList(List<MarketListing> listings) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.MARKET_LIST).putShort(listings.size());
+            for (MarketListing l : listings) {
+                l.write(p);
+            }
+            return p;
+        }
+
+        public static MarketList from(Packet p) {
+            int n = p.getUShort();
+            List<MarketListing> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(MarketListing.read(p));
+            }
+            return new MarketList(list);
+        }
+    }
+
+    public record MarketSell(int bagSlot, int count, int price) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.MARKET_SELL).putShort(bagSlot).putShort(count).putInt(price);
+        }
+
+        public static MarketSell from(Packet p) {
+            return new MarketSell(p.getUShort(), p.getUShort(), p.getInt());
+        }
+    }
+
+    public record MarketBuy(int listingId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.MARKET_BUY).putInt(listingId);
+        }
+
+        public static MarketBuy from(Packet p) {
+            return new MarketBuy(p.getInt());
+        }
+    }
+
+    // ==================================================================
+    // Mercenary / pet companion (MERC_LIST 15503, MERC_BUY 15505)
+    // ==================================================================
+
+    public record MercEntry(int id, String name, int level, int atkBonus, int price, boolean owned) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putShort(level).putShort(atkBonus).putInt(price).putBool(owned);
+        }
+
+        public static MercEntry read(Packet p) {
+            return new MercEntry(p.getInt(), p.getString(), p.getUShort(), p.getUShort(),
+                    p.getInt(), p.getBool());
+        }
+    }
+
+    public record MercList(List<MercEntry> mercs) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.MERC_LIST).putShort(mercs.size());
+            for (MercEntry m : mercs) {
+                m.write(p);
+            }
+            return p;
+        }
+
+        public static MercList from(Packet p) {
+            int n = p.getUShort();
+            List<MercEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(MercEntry.read(p));
+            }
+            return new MercList(list);
+        }
+    }
+
+    public record MercBuy(int mercId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.MERC_BUY).putInt(mercId);
+        }
+
+        public static MercBuy from(Packet p) {
+            return new MercBuy(p.getInt());
+        }
+    }
 }

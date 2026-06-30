@@ -91,15 +91,24 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
 * **party / team** — invite (auto-accept) / leave with a live roster, team-scoped
   chat (`TeamHandler`, `TeamRegistry`);
 * **mail** — send mail with attached gold to any player (online or offline) and
-  read the mailbox (`MailHandler`, `MailRegistry`).
+  read the mailbox (`MailHandler`, `MailRegistry`);
+* **quests** — a server-defined kill-quest board: list / accept / turn in, with
+  progress driven by combat and exp/gold rewards (`QuestHandler`, `Quests`);
+* **achievements** — milestone tracking (first kill, 10 kills, level 5, join
+  guild, 500 gold) that unlock live as you play (`AchievementHandler`);
+* **player marketplace** — consign an item for a price, browse listings, buy;
+  the seller is paid by mail so it settles even while offline (`MarketHandler`,
+  `MarketRegistry`);
+* **mercenary / pet** — hire a companion (derived from `monster.txt`) that adds a
+  permanent attack bonus (`MercenaryHandler`).
 
 Each system is covered by an integration test in `client/core` that drives the
-real server with real clients (17 tests total).
+real server with real clients (21 tests total).
 
-**Roadmap (opcodes already catalogued in `OPCODES.md`):** player-to-player
-marketplace, turn-based skill battles, quests & escorts, country war, mail
-attachments of items, mercenaries & pets, achievements. Each maps to a documented
-opcode and slots into the dispatcher as a new `PacketHandler`.
+**Roadmap (opcodes already catalogued in `OPCODES.md`):** turn-based skill
+battles matching the original engine, escort missions, country war, item
+attachments in mail, deeper pet AI. Each maps to a documented opcode and slots
+into the dispatcher as a new `PacketHandler`.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the

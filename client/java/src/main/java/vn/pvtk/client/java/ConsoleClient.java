@@ -87,6 +87,32 @@ public final class ConsoleClient {
                 m.mails().forEach(x -> System.out.println("  #" + x.id() + " từ " + x.fromName()
                         + ": " + x.subject() + " (" + x.gold() + " vàng)"));
             }
+            @Override public void onQuestList(vn.pvtk.protocol.message.Messages.QuestList q) {
+                System.out.println("[quests]");
+                q.quests().forEach(x -> System.out.println("  #" + x.id() + " " + x.name()
+                        + " [" + x.progress() + "/" + x.target() + "] "
+                        + (new String[]{"available", "active", "done"})[x.state()]
+                        + " (EXP " + x.rewardExp() + ", vàng " + x.rewardGold() + ")"));
+            }
+            @Override public void onAchievementList(vn.pvtk.protocol.message.Messages.AchievementList a) {
+                System.out.println("[achievements]");
+                a.achievements().forEach(x -> System.out.println("  " + (x.unlocked() ? "[x] " : "[ ] ")
+                        + x.name() + " - " + x.desc()));
+            }
+            @Override public void onAchievementUnlocked(vn.pvtk.protocol.message.Messages.AchievementUnlocked a) {
+                System.out.println("[ACHIEVEMENT] Mở khóa: " + a.name() + "!");
+            }
+            @Override public void onMarketList(vn.pvtk.protocol.message.Messages.MarketList m) {
+                System.out.println("[market] " + m.listings().size() + " món rao bán:");
+                m.listings().forEach(x -> System.out.println("  #" + x.listingId() + " " + x.itemName()
+                        + " x" + x.count() + " - " + x.price() + " vàng (bởi " + x.sellerName() + ")"));
+            }
+            @Override public void onMercList(vn.pvtk.protocol.message.Messages.MercList m) {
+                System.out.println("[mercenary]");
+                m.mercs().forEach(x -> System.out.println("  #" + x.id() + " " + x.name()
+                        + " Lv" + x.level() + " +" + x.atkBonus() + " ATK - " + x.price() + " vàng"
+                        + (x.owned() ? " [đang dùng]" : "")));
+            }
             @Override public void onDisconnected(String reason) {
                 System.out.println("[net] disconnected: " + reason);
             }
@@ -183,6 +209,34 @@ public final class ConsoleClient {
                         System.out.println("usage: sendmail <toName> <message>");
                     }
                 }
+                case "quests" -> client.requestQuests();
+                case "accept" -> {
+                    if (t.length > 1) client.acceptQuest(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: accept <questId>");
+                }
+                case "turnin" -> {
+                    if (t.length > 1) client.completeQuest(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: turnin <questId>");
+                }
+                case "ach" -> client.requestAchievements();
+                case "market" -> client.requestMarket();
+                case "list" -> {
+                    String[] a = t.length > 1 ? t[1].split("\\s+") : new String[0];
+                    if (a.length >= 2) {
+                        client.marketSell(Integer.parseInt(a[0]), 1, Integer.parseInt(a[1]));
+                    } else {
+                        System.out.println("usage: list <bagSlot> <price>");
+                    }
+                }
+                case "mbuy" -> {
+                    if (t.length > 1) client.marketBuy(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: mbuy <listingId>");
+                }
+                case "merc" -> client.requestMercs();
+                case "hire" -> {
+                    if (t.length > 1) client.hireMerc(Integer.parseInt(t[1].trim()));
+                    else System.out.println("usage: hire <mercId>");
+                }
                 case "quit", "exit" -> {
                     client.disconnect();
                     return;
@@ -225,6 +279,8 @@ public final class ConsoleClient {
         System.out.println("  shop [id]            open shop      buy <itemId> [n] | sell <slot> [n]");
         System.out.println("  party <name>         invite         leaveparty   leave party");
         System.out.println("  mail                 inbox          sendmail <to> <msg>");
+        System.out.println("  quests | accept <id> | turnin <id>  ach (achievements)");
+        System.out.println("  market | list <slot> <price> | mbuy <id>   merc | hire <id>");
         System.out.println("  country create <name> | list | join <id> | leave | info");
         System.out.println("  quit");
     }
