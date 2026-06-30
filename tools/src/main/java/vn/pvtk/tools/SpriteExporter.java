@@ -34,9 +34,15 @@ public final class SpriteExporter {
                 frFiles.add(assets.resolve(args[i] + ".fr"));
             }
         } else {
-            // Default: every .fr under common/ (icons, effects, fonts, character bits).
-            try (var stream = Files.walk(assets.resolve("common"))) {
-                stream.filter(p -> p.toString().endsWith(".fr")).forEach(frFiles::add);
+            // Default: every .fr sprite sheet under common/ and ani/ (incl. ani2/).
+            for (String dir : new String[]{"common", "ani"}) {
+                Path root = assets.resolve(dir);
+                if (!Files.isDirectory(root)) {
+                    continue;
+                }
+                try (var stream = Files.walk(root)) {
+                    stream.filter(p -> p.toString().endsWith(".fr")).forEach(frFiles::add);
+                }
             }
         }
 

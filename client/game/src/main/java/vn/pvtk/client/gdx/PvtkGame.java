@@ -43,6 +43,7 @@ public final class PvtkGame extends ApplicationAdapter {
     private Texture mapTexture;
     private int mapTextureId = -1;
     private SpriteAtlas atlas; // real decoded game sprites (null => fallback boxes)
+    private float animTime;    // drives frame-cycling animation
 
     public PvtkGame(PvtkConfig config) {
         this.config = config;
@@ -74,6 +75,7 @@ public final class PvtkGame extends ApplicationAdapter {
 
     @Override
     public void render() {
+        animTime += Gdx.graphics.getDeltaTime();
         camera.update();
         Gdx.gl.glClearColor(0.07f, 0.08f, 0.10f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -91,7 +93,7 @@ public final class PvtkGame extends ApplicationAdapter {
                 batch.draw(atlas.region(spriteIndex(e)), e.x * ts, e.y * ts, ts, ts);
             }
             if (self != null) {
-                batch.draw(atlas.region(0), self.x * ts, self.y * ts, ts, ts);
+                batch.draw(atlas.region(spriteIndex(self)), self.x * ts, self.y * ts, ts, ts);
             }
             batch.end();
         }
@@ -202,14 +204,24 @@ public final class PvtkGame extends ApplicationAdapter {
         shapes.end();
     }
 
-    /** Maps an entity to a frame in the sprite atlas (stable per kind/id). */
+    private static final int ANIM_FRAMES = 4;
+    private static final float ANIM_FPS = 4f;
+
+    /**
+     * Maps an entity to a frame in the sprite atlas, cycling through a short run of
+     * consecutive decoded frames over time so entities visibly animate. (This plays
+     * frames from the real decoded sheet; the original's exact .pd/.spr animation
+     * sequences are not yet decoded.)
+     */
     private int spriteIndex(Entity e) {
-        return switch (e.kind) {
-            case vn.pvtk.protocol.message.Messages.KIND_MONSTER -> 8 + Math.abs(e.id) % 8;
+        int step = (int) (animTime * ANIM_FPS) % ANIM_FRAMES;
+        int base = switch (e.kind) {
+            case vn.pvtk.protocol.message.Messages.KIND_MONSTER -> 8 + (Math.abs(e.id) % 4) * ANIM_FRAMES;
             case vn.pvtk.protocol.message.Messages.KIND_PET -> 4;
             case vn.pvtk.protocol.message.Messages.KIND_NPC -> 16;
-            default -> 1 + Math.abs(e.id) % 3;
+            default -> 0;
         };
+        return base + step;
     }
 
     private void drawEntity(Entity e, Color color, int ts, boolean drawBody) {

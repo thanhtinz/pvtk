@@ -142,15 +142,27 @@ verified against the real assets — `common/1.png` (256×320) → 80 × 32×32 
   individual frame PNGs offline — **172 sheets → 1754 frames** — which is fully
   verifiable headlessly (each output is a standard PNG).
 * The libGDX client loads a real decoded sheet (`SpriteAtlas`) and renders actual
-  game sprite frames for entities, with colour-box fallback if assets are absent.
+  game sprite frames for entities, **cycling through consecutive decoded frames
+  over time** so they animate, with colour-box fallback if assets are absent.
 
 ### Remaining graphics work
 
-* **Animation playback** — the `.pd` / `.spr` files (under `ani/`) describe
-  multi-part animated sprites (frame sequences + per-part offsets) and `.pl`
-  files are palettes for recolouring. Static frame slicing via `.fr` is done;
-  full skeletal animation + palette swaps (the original `h`/`az`/`bo` image
-  classes) is the remaining piece.
+The `ani/` directory holds the original's skeletal animation, which is **not yet
+decoded** — three layered formats are involved:
+
+* `.spr` (e.g. `ani/sprite_15000.spr`) — the sprite *module* table: image parts
+  referencing frames. The original parser (`ef`/`br` classes) is heavily
+  obfuscated and spread across classes; reproducing it is non-trivial.
+* `.pd` (e.g. `ani/10.pd`) — the animation: per-frame lists of parts with offsets
+  and flips. Its header is a count + index table, but the exact record layout was
+  not confirmed against the files (an early guess was rejected by validation, so
+  it was not shipped).
+* `.pl` — palettes for recolouring a shared sheet into team/variant colours.
+
+`ani/*.fr` files exist too but use a variant layout the current `.fr` parser
+doesn't accept (they are skipped by the exporter). The client therefore animates
+by cycling the verified `common/*.fr` frames rather than replaying the original
+`.pd` sequences — a faithful skeletal-animation engine is the remaining work.
 
 **Combat is a deliberate simplification.** The original game used turn-based
 battle opcodes (`12501 EnterLocalBattle`, `12505 BattlePlan`, ...). Because the
