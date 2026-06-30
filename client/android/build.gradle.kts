@@ -29,7 +29,7 @@ android {
     }
 
     // Bundle the shared asset tree (sprites, maps, UI, content tables) into the APK.
-    sourceSets["main"].assets.srcDirs("../assets")
+    sourceSets["main"].assets.srcDirs("../../assets")
 
     // libGDX ships native .so files inside its platform jars.
     packaging {
@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":client-gdx-core"))
+    implementation(project(":client:game"))
     implementation(libs.gdx.backend.android)
     natives(variantOf(libs.gdx.platform) { classifier("natives-armeabi-v7a") })
     natives(variantOf(libs.gdx.platform) { classifier("natives-arm64-v8a") })

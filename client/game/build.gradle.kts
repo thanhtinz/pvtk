@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    api(project(":client-core"))
+    api(project(":client:core"))
     api(libs.gdx.core)
 }

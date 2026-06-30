@@ -14,22 +14,23 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
               │
    ┌──────────┼───────────────────────────┐
    │          │                           │
-┌──▼───┐  ┌───▼────────┐            ┌──────▼───────┐
-│server│  │ client-core │            │  (tests use  │
-│Netty │  │ GameClient, │            │   server +   │
-│world │  │ GameState,  │            │  client-core)│
-│ AOI  │  │ GameConn.   │            └──────────────┘
+┌──▼───┐  ┌───▼─────────┐           ┌──────▼───────┐
+│server│  │ client/core │           │  (tests use  │
+│Netty │  │ GameClient, │           │   server +   │
+│world │  │ GameState,  │           │ client/core) │
+│ AOI  │  │ GameConn.   │           └──────────────┘
 └──────┘  └───┬─────────┘
               │  platform-neutral client (JDK sockets only)
-        ┌─────┴──────────┐
-        │ client-gdx-core │  shared libGDX game (render + input)
-        └─────┬───────────┘
-   ┌──────────┼───────────┬──────────────┐
-┌──▼─────┐ ┌──▼──────┐ ┌──▼────────┐ ┌───▼──────┐
-│desktop │ │ android │ │   ios     │ │client-java│
-│ LWJGL3 │ │ libGDX  │ │  RoboVM   │ │ console   │
-│  (PC)  │ │ backend │ │  backend  │ │ reference │
-└────────┘ └─────────┘ └───────────┘ └───────────┘
+        ┌─────┴───────┐
+        │ client/game │  shared libGDX game (render + input)
+        └─────┬───────┘
+   ┌──────────┼───────────┐
+┌──▼─────┐ ┌──▼──────┐ ┌──▼────────┐
+│desktop │ │ android │ │   ios     │
+│ LWJGL3 │ │ libGDX  │ │  RoboVM   │
+│  (PC)  │ │ backend │ │  backend  │
+└────────┘ └─────────┘ └───────────┘
+   (all under the single client/ directory)
 ```
 
 ## Design principles
@@ -43,10 +44,10 @@ the faithfully reconstructed wire protocol (see `PROTOCOL.md`).
    result. Clients render what the server tells them. This is the foundation for
    anti-cheat and consistency.
 
-3. **Platform-neutral client core.** `client-core` uses only the JDK
+3. **Platform-neutral client core.** `client/core` uses only the JDK
    (`java.net.Socket`), so the identical networking + game-state code runs on
    desktop JVM, Android (ART) and iOS (RoboVM AOT). Rendering is isolated in
-   `client-gdx-core` so a single libGDX game targets all three GUI platforms.
+   `client/game` so a single libGDX game targets all three GUI platforms.
 
 4. **Graceful degradation.** The server dispatcher logs and ignores unknown
    opcodes, so partially-implemented features never crash a session — the 245
@@ -79,10 +80,18 @@ combat/battle, teams, quests & escorts, country (guild) & war, mail, mercenaries
 & pets, achievements, marketplace. Each maps to a documented opcode and slots
 into the dispatcher as a new `PacketHandler`.
 
-## Importing original assets
+## Game assets
 
-The original jar bundles art and data under `ani/`, `map/`, `common/`,
-`mission/`, `ui/` (sprites `.spr`, frames `.fr`, palettes `.pl`, maps `.mss`,
-etc.). These are **not** committed. A converter (see `tools/`) can transcode them
-into libGDX-friendly atlases/Tiled maps for the graphical clients; the protocol
-and server do not depend on them.
+The complete original asset set is shipped in `assets/` (`ani/`, `common/`,
+`map/`, `mission/`, `ui/` plus the UTF-16LE content tables `item.txt`,
+`monster.txt`, `skill.txt`, ...) — see [`../assets/README.md`](../assets/README.md).
+Paths are preserved from the original client and resolved through
+`vn.pvtk.protocol.data.AssetPaths`:
+
+* the **server** loads the real content database on startup via
+  `vn.pvtk.server.data.GameData` (`DataTable` parses the TSV tables);
+* the **graphical clients** load sprites/maps/UI through `Gdx.files.internal(...)`.
+
+The build is wired so assets resolve everywhere: desktop and server run from the
+repo root, Android bundles `../../assets` into the APK, and iOS includes it via
+`robovm.xml`.

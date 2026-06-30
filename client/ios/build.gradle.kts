@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":client-gdx-core"))
+    implementation(project(":client:game"))
     implementation(libs.gdx.backend.robovm)
     implementation(variantOf(libs.gdx.platform) { classifier("natives-ios") })
 }

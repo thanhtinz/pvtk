@@ -30,12 +30,15 @@ from the legacy client and re-implemented in clean Java 21.
 |--------|------------|-----------|
 | `protocol` | Wire codec (`Packet`, `Frame`, `Opcodes`) + typed `Messages` | bare JDK |
 | `server` | Authoritative game server | Netty |
-| `client-core` | Platform-neutral `GameClient` + `GameState` | bare JDK |
-| `client-gdx-core` | Shared libGDX game (render + input) | libGDX |
-| `client-desktop` | **PC** launcher (Windows/macOS/Linux) | LWJGL3 |
-| `client-android` | **Android** launcher | Android SDK |
-| `client-ios` | **iOS** launcher | RoboVM (macOS) |
-| `client-java` | Headless/console reference client | bare JDK |
+| `client/core` | Platform-neutral `GameClient` + `GameState` | bare JDK |
+| `client/game` | Shared libGDX game (render + input) | libGDX |
+| `client/desktop` | **PC** launcher (Windows/macOS/Linux) | LWJGL3 |
+| `client/android` | **Android** launcher | Android SDK |
+| `client/ios` | **iOS** launcher | RoboVM (macOS) |
+
+All the cross-platform front-ends live under one `client/` directory: a shared
+core (`core` + `game`) plus one thin launcher per platform — the standard libGDX
+layout for shipping a single game to PC, Android and iOS.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture.
 
@@ -63,38 +66,29 @@ PVTK_PORT=30000 ./gradlew :server:run
 ./gradlew :server:run --args="--host 0.0.0.0 --port 30000"
 ```
 
-### 3. Connect with the console client (PC, pure Java)
+### 3. Run the PC client (libGDX desktop)
 
 ```bash
-./gradlew :client-java:run --args="--host 127.0.0.1 --port 30000 --user Alice"
-# commands:  m <x> <y>   move      s <text>   say (world)   who   quit
+./gradlew :client:desktop:run --args="--host 127.0.0.1 --port 30000 --user Alice"
 ```
 
-Open a second terminal with `--user Bob` and watch them see each other move and
-chat in real time.
+Click/tap a tile to move; other players and world chat appear live. Open a second
+window with `--user Bob` and watch them see each other move and chat in real time.
 
-### 4. Run the graphical PC client (libGDX desktop)
-
-```bash
-./gradlew :client-desktop:run --args="--host 127.0.0.1 --port 30000 --user Alice"
-```
-
-Click/tap a tile to move; other players and world chat appear live.
-
-### 5. Android
+### 4. Android
 
 ```bash
 # with ANDROID_HOME set (or a local.properties pointing at the SDK)
-./gradlew :client-android:assembleDebug
-# install client-android/build/outputs/apk/debug/*.apk
+./gradlew :client:android:assembleDebug
+# install client/android/build/outputs/apk/debug/*.apk
 ```
 
-### 6. iOS (on macOS)
+### 5. iOS (on macOS)
 
 ```bash
-# enable the RoboVM plugin in client-ios/build.gradle.kts, then:
-PVTK_BUILD_IOS=1 ./gradlew :client-ios:launchIPhoneSimulator
-PVTK_BUILD_IOS=1 ./gradlew :client-ios:createIPA
+# enable the RoboVM plugin in client/ios/build.gradle.kts, then:
+PVTK_BUILD_IOS=1 ./gradlew :client:ios:launchIPhoneSimulator
+PVTK_BUILD_IOS=1 ./gradlew :client:ios:createIPA
 ```
 
 ## Tests
@@ -103,7 +97,7 @@ PVTK_BUILD_IOS=1 ./gradlew :client-ios:createIPA
 ./gradlew test
 ```
 
-`protocol` has byte-level codec tests; `client-core` has a full end-to-end
+`protocol` has byte-level codec tests; `client/core` has a full end-to-end
 multiplayer integration test (real server + real clients over loopback).
 
 ## How this was built

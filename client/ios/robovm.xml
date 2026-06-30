@@ -8,7 +8,7 @@
     <iosInfoPList>Info.plist.xml</iosInfoPList>
     <resources>
         <resource>
-            <directory>../assets</directory>
+            <directory>../../assets</directory>
             <includes><include>**</include></includes>
             <skipPngCrush>true</skipPngCrush>
         </resource>

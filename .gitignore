@@ -20,10 +20,10 @@ bin/
 
 # Android / iOS
 local.properties
-client-android/local.properties
+client/android/local.properties
 *.apk
 *.aab
-client-ios/robovm.properties.local
+client/ios/robovm.properties.local
 
 # OS
 .DS_Store
