@@ -149,7 +149,7 @@ const views = {
     paint();
 
     // Đặc Sắc carousel of feature banners.
-    const feats = ['/img/feat-1.jpg', '/img/feat-2.jpg', '/img/feat-3.jpg', '/img/feat-4.jpg'];
+    const feats = ['/img/feat-1.jpg', '/img/feat-2.jpg', '/img/feat-3.jpg', '/img/feat-4.jpg', '/img/feat-5.jpg'];
     let fidx = 0;
     const featImg = document.getElementById('featImg');
     const featDots = document.getElementById('featDots');
