@@ -90,7 +90,7 @@ const tabs = {
     app().innerHTML = `<h2>Quản lý người chơi</h2>
       <div class="row"><input id="q" placeholder="Tìm tài khoản..." style="max-width:300px"/></div>
       <div class="card" style="margin-top:12px"><table id="t"><tr>
-        <th>Tài khoản</th><th>Quyền</th><th>Cấp</th><th>Vàng</th><th>Số dư</th><th>TT</th><th>Hành động</th></tr></table></div>`;
+        <th>Tài khoản</th><th>Quyền</th><th>Cấp</th><th>Vàng</th><th>KNB</th><th>TT</th><th>Hành động</th></tr></table></div>`;
     const draw = async () => {
       const { users } = await api('/admin/users?q=' + encodeURIComponent(document.getElementById('q').value || ''));
       const t = document.getElementById('t');
@@ -99,7 +99,7 @@ const tabs = {
         const tr = el(`<tr>
           <td>${esc(u.username)}</td>
           <td>${u.role === 'ADMIN' ? '<span class="tag admin">ADMIN</span>' : 'USER'}</td>
-          <td>${u.level}</td><td>${u.gold}</td><td>${u.balance}</td>
+          <td>${u.level}</td><td>${u.gold}</td><td>${u.knb}</td>
           <td>${u.online ? '<span class="tag on">ON</span>' : '<span class="tag off">OFF</span>'}</td>
           <td class="row"></td></tr>`);
         const act = tr.querySelector('td:last-child');
@@ -181,7 +181,7 @@ const tabs = {
     app().innerHTML = `<h2>Giftcode</h2>
       <button class="btn" id="new">+ Tạo giftcode</button>
       <div class="card" style="margin-top:12px"><table id="t"><tr>
-        <th>Mã</th><th>Vàng</th><th>Số dư</th><th>Vật phẩm</th><th>Lượt</th><th></th></tr>
+        <th>Mã</th><th>Vàng</th><th>KNB</th><th>Vật phẩm</th><th>Lượt</th><th></th></tr>
       ${giftcodes.map(g => `<tr><td><b>${esc(g.code)}</b></td><td>${g.rewardGold}</td><td>${g.rewardBalance}</td>
         <td>${g.items.length}</td><td>${g.used}/${g.maxUses || '∞'}</td>
         <td><button class="btn small red" data-c="${esc(g.code)}">Xóa</button></td></tr>`).join('')}</table></div>`;
@@ -335,7 +335,7 @@ const tabs = {
     const { packages } = await api('/admin/packages');
     app().innerHTML = `<h2>Gói nạp</h2><button class="btn" id="new">+ Thêm gói</button>
       <div class="card" style="margin-top:12px"><table id="t"><tr>
-        <th>Tên</th><th>Giá (VND)</th><th>Xu</th><th>Bonus</th><th>Bật</th><th></th></tr>
+        <th>Tên</th><th>Giá (VND)</th><th>KNB</th><th>Bonus</th><th>Bật</th><th></th></tr>
       ${packages.map(p => `<tr><td>${esc(p.name)}</td><td>${p.priceVnd.toLocaleString('vi')}</td>
         <td>${p.xu}</td><td>${p.bonus}</td><td>${p.enabled ? ICON.check : ICON.close}</td>
         <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
@@ -343,25 +343,10 @@ const tabs = {
     app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/packages/' + b.dataset.id, 'DELETE'); tabs.packages(); });
   },
 
-  async redeempkgs() {
-    const { packages } = await api('/admin/redeempkgs');
-    app().innerHTML = `<h2>Gói đổi trong game</h2>
-      <p class="muted">Người chơi mở menu <b>NẠP GAME</b> trong game để đổi Xu (ví web) lấy Tiền nạp + vật phẩm.</p>
-      <button class="btn" id="new">+ Thêm gói</button>
-      <div class="card" style="margin-top:12px"><table id="t"><tr>
-        <th>Tên</th><th>Tốn Xu</th><th>Tiền nạp</th><th>Vật phẩm tặng</th><th>Bật</th><th></th></tr>
-      ${packages.map(p => `<tr><td>${esc(p.name)}</td><td>${p.costXu}</td><td>${p.coin}</td>
-        <td>${(p.bonus || []).map(q => '#' + q.itemId + '×' + q.count).join(', ') || '—'}</td>
-        <td>${p.enabled ? ICON.check : ICON.close}</td>
-        <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
-    document.getElementById('new').onclick = () => redeemDialog();
-    app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/redeempkgs/' + b.dataset.id, 'DELETE'); tabs.redeempkgs(); });
-  },
-
   async orders() {
     const { orders } = await api('/admin/orders');
     app().innerHTML = `<h2>Đơn nạp</h2><div class="card"><table><tr>
-      <th>Mã</th><th>Tài khoản</th><th>Số tiền</th><th>Xu</th><th>Trạng thái</th><th>Thời gian</th></tr>
+      <th>Mã</th><th>Tài khoản</th><th>Số tiền</th><th>KNB</th><th>Trạng thái</th><th>Thời gian</th></tr>
       ${orders.map(o => `<tr><td><b>${esc(o.code)}</b></td><td>${esc(o.user)}</td>
         <td>${o.amountVnd.toLocaleString('vi')}đ</td><td>${o.xu}</td>
         <td><span class="tag ${o.status === 'paid' ? 'on' : 'off'}">${o.status}</span></td>
@@ -382,9 +367,9 @@ function addBtn(parent, label, fn) { const b = el(`<button class="btn small sec"
 
 function economyDialog(u, after) {
   modal(`<h3>Kinh tế: ${esc(u.username)}</h3>
-    <p class="muted">Vàng: ${u.gold} · Số dư: ${u.balance} ${ICON.gem}. Nhập số âm để trừ.</p>
+    <p class="muted">Vàng: ${u.gold} · KNB: ${u.knb} ${ICON.gem}. Nhập số âm để trừ.</p>
     <label>+/- Vàng</label><input id="dg" type="number" value="0"/>
-    <label>+/- Số dư (${ICON.gem})</label><input id="db" type="number" value="0"/>
+    <label>+/- KNB (${ICON.gem})</label><input id="db" type="number" value="0"/>
     <div class="row" style="margin-top:14px"><button class="btn" id="ok">Áp dụng</button>
       <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
   document.getElementById('ok').onclick = async () => {
@@ -443,8 +428,8 @@ function packageDialog() {
   modal(`<h3>Thêm gói nạp</h3>
     <label>Tên (để trống = tự đặt)</label><input id="name"/>
     <label>Giá chuyển khoản (VND)</label><input id="price" type="number" value="10000"/>
-    <label>Xu nhận được</label><input id="xu" type="number" value="100"/>
-    <label>Xu thưởng</label><input id="bonus" type="number" value="0"/>
+    <label>KNB nhận được</label><input id="xu" type="number" value="100"/>
+    <label>KNB thưởng</label><input id="bonus" type="number" value="0"/>
     <div class="row" style="margin-top:14px"><button class="btn" id="ok">Lưu</button>
       <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
   document.getElementById('ok').onclick = async () => {
@@ -452,28 +437,6 @@ function packageDialog() {
       priceVnd: Number(document.getElementById('price').value), xu: Number(document.getElementById('xu').value),
       bonus: Number(document.getElementById('bonus').value) });
     toast('Đã lưu gói nạp'); closeModal(); tabs.packages();
-  };
-}
-
-function redeemDialog() {
-  modal(`<h3>Thêm gói đổi trong game</h3>
-    <label>Tên (để trống = tự đặt)</label><input id="name"/>
-    <label>Tốn Xu (ví web)</label><input id="costXu" type="number" value="100"/>
-    <label>Tiền nạp nhận được</label><input id="coin" type="number" value="100"/>
-    <label>Vật phẩm tặng (định dạng: itemId×số, cách nhau bởi dấu phẩy)</label>
-    <input id="bonus" placeholder="vd: 1×2, 45×1"/>
-    <div class="row" style="margin-top:14px"><button class="btn" id="ok">Lưu</button>
-      <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
-  document.getElementById('ok').onclick = async () => {
-    const bonus = (document.getElementById('bonus').value || '').split(',')
-      .map(s => s.trim()).filter(Boolean).map(s => {
-        const m = s.split(/[x×*]/i);
-        return { itemId: Number(m[0]), count: Number(m[1] || 1) };
-      }).filter(q => q.itemId > 0);
-    await api('/admin/redeempkgs', 'POST', { name: document.getElementById('name').value,
-      costXu: Number(document.getElementById('costXu').value),
-      coin: Number(document.getElementById('coin').value), bonus });
-    toast('Đã lưu gói đổi'); closeModal(); tabs.redeempkgs();
   };
 }
 
@@ -500,7 +463,6 @@ const TAB_TITLES = {
   items: 'Vật phẩm', monsters: 'Quái / Boss', maps: 'Máy chủ / Map', mail: 'Gửi vật phẩm',
   market: 'Chợ ingame', products: 'Webshop', sepay: 'Cổng nạp (SePay)', packages: 'Gói nạp',
   orders: 'Đơn nạp', news: 'Tin / Sự kiện', announce: 'Thông báo', giftcodes: 'Giftcode',
-  packages: 'Gói nạp', redeempkgs: 'Gói đổi trong game',
   site: 'Website & Liên hệ', transactions: 'Lịch sử giao dịch',
 };
 function show(tab) {

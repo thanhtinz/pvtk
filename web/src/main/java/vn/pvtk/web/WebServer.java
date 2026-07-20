@@ -52,27 +52,7 @@ public final class WebServer {
         http.setExecutor(Executors.newFixedThreadPool(8));
         http.createContext("/", this::route);
         http.start();
-        pushRedeemPackages(); // sync the game with admin-configured in-game top-up packages
         log.info("PVTK website listening on http://localhost:{}  (admin: admin/admin123)", port);
-    }
-
-    /**
-     * Pushes the admin-configured in-game top-up packages ("Gói nạp") into the
-     * live game server so the in-game redeem menu reflects the current catalogue.
-     */
-    private void pushRedeemPackages() {
-        var packs = new java.util.ArrayList<vn.pvtk.server.data.GameData.RedeemPack>();
-        for (WebData.RedeemPackage rp : web.root().redeemPackages) {
-            if (!rp.enabled) {
-                continue;
-            }
-            var bonus = new java.util.ArrayList<vn.pvtk.server.data.GameData.RedeemBonus>();
-            for (WebData.ItemQty q : rp.bonus) {
-                bonus.add(new vn.pvtk.server.data.GameData.RedeemBonus(q.itemId, Math.max(1, q.count)));
-            }
-            packs.add(new vn.pvtk.server.data.GameData.RedeemPack(rp.id, rp.name, rp.costXu, rp.coin, bonus));
-        }
-        game.gameData().setRedeemPacks(packs);
     }
 
     public void stop() {
@@ -195,10 +175,10 @@ public final class WebServer {
             if (amount <= 0) {
                 throw new HttpError(400, "Số tiền không hợp lệ");
             }
-            a.balance += amount;
+            creditKnb(a, amount);
             game.accounts().save();
-            web.addTx(a.username, "topup", "Nạp " + amount + " Xu", amount, "balance", System.currentTimeMillis());
-            sendJson(ex, 200, Map.of("balance", a.balance));
+            web.addTx(a.username, "topup", "Nạp " + amount + " KNB", amount, "knb", System.currentTimeMillis());
+            sendJson(ex, 200, Map.of("knb", a.coin));
             return;
         }
         if (p.equals("/topup/order") && m.equals("POST")) {
@@ -212,7 +192,7 @@ public final class WebServer {
             if (o == null || !o.user.equalsIgnoreCase(a.username)) {
                 throw new HttpError(404, "Order");
             }
-            sendJson(ex, 200, Map.of("status", o.status, "xu", o.xu, "balance", a.balance));
+            sendJson(ex, 200, Map.of("status", o.status, "knb", o.xu, "balance", a.coin));
             return;
         }
         if (p.equals("/giftcode") && m.equals("POST")) {
@@ -297,13 +277,6 @@ public final class WebServer {
                     sendJson(ex, 200, saveSepay(body(ex)));
                 }
             }
-            case "/redeempkgs" -> {
-                if (m.equals("GET")) {
-                    sendJson(ex, 200, Map.of("packages", web.root().redeemPackages));
-                } else {
-                    sendJson(ex, 200, saveRedeemPackage(body(ex)));
-                }
-            }
             case "/packages" -> {
                 if (m.equals("GET")) {
                     sendJson(ex, 200, Map.of("packages", web.root().packages));
@@ -348,12 +321,6 @@ public final class WebServer {
                     web.root().packages.removeIf(pk -> pk.id == id);
                     web.save();
                     sendJson(ex, 200, Map.of("ok", true));
-                } else if (p.startsWith("/redeempkgs/") && m.equals("DELETE")) {
-                    int id = Integer.parseInt(p.substring(12));
-                    web.root().redeemPackages.removeIf(pk -> pk.id == id);
-                    web.save();
-                    pushRedeemPackages();
-                    sendJson(ex, 200, Map.of("ok", true));
                 } else {
                     throw new HttpError(404, "Admin route");
                 }
@@ -377,7 +344,7 @@ public final class WebServer {
                 g.used++;
                 g.redeemedBy.add(a.username);
                 if (g.rewardBalance > 0) {
-                    a.balance += g.rewardBalance;
+                    creditKnb(a, g.rewardBalance);
                 }
                 if (g.rewardGold > 0) {
                     grantGold(a, (int) g.rewardGold);
@@ -403,16 +370,16 @@ public final class WebServer {
     private Map<String, Object> buyProduct(Account a, int productId) {
         for (WebData.Product pr : web.root().products) {
             if (pr.id == productId && pr.enabled) {
-                if (a.balance < pr.price) {
-                    throw new HttpError(400, "Số dư không đủ (cần nạp thẻ)");
+                if (a.coin < pr.price) {
+                    throw new HttpError(400, "Số dư KNB không đủ (cần nạp thẻ)");
                 }
-                a.balance -= pr.price;
+                creditKnb(a, -pr.price);
                 game.world().sendMail("Webshop", a.username, "Vật phẩm Webshop",
                         "Cảm ơn bạn đã mua " + pr.name, 0,
                         List.of(new int[]{pr.itemId, pr.count}));
                 game.accounts().save();
-                web.addTx(a.username, "buy", "Mua " + pr.name, -pr.price, "balance", System.currentTimeMillis());
-                return Map.of("ok", true, "balance", a.balance, "message", "Mua thành công, kiểm tra hòm thư trong game!");
+                web.addTx(a.username, "buy", "Mua " + pr.name, -pr.price, "knb", System.currentTimeMillis());
+                return Map.of("ok", true, "knb", a.coin, "message", "Mua thành công, kiểm tra hòm thư trong game!");
             }
         }
         throw new HttpError(404, "Sản phẩm không tồn tại");
@@ -431,7 +398,7 @@ public final class WebServer {
             m.put("id", pk.id);
             m.put("name", pk.name);
             m.put("priceVnd", pk.priceVnd);
-            m.put("xu", pk.xu);
+            m.put("knb", pk.xu);
             m.put("bonus", pk.bonus);
             pks.add(m);
         }
@@ -463,7 +430,7 @@ public final class WebServer {
         m.put("code", code);
         m.put("content", content);
         m.put("amountVnd", o.amountVnd);
-        m.put("xu", o.xu);
+        m.put("knb", o.xu);
         m.put("bankCode", s.bankCode);
         m.put("accountNumber", s.accountNumber);
         m.put("accountHolder", s.accountHolder);
@@ -500,15 +467,15 @@ public final class WebServer {
         if (a == null) {
             return Map.of("success", true, "matched", false, "reason", "user gone");
         }
-        a.balance += o.xu;
+        creditKnb(a, o.xu);
         o.status = "paid";
         o.paidAt = System.currentTimeMillis();
         o.ref = str(b, "referenceCode").isBlank() ? str(b, "id") : str(b, "referenceCode");
         game.accounts().save();
         web.save();
-        web.addTx(o.user, "topup", "SePay nạp " + o.amountVnd + "đ → " + o.xu + " Xu", o.xu, "balance",
+        web.addTx(o.user, "topup", "SePay nạp " + o.amountVnd + "đ → " + o.xu + " KNB", o.xu, "knb",
                 o.paidAt);
-        return Map.of("success", true, "matched", true, "xu", o.xu);
+        return Map.of("success", true, "matched", true, "knb", o.xu);
     }
 
     private static String enc(String v) {
@@ -522,6 +489,20 @@ public final class WebServer {
         }
     }
 
+    /**
+     * Credits (or debits) in-game KNB straight to the account — and the live
+     * character if online. Top-ups therefore land as spendable in-game currency
+     * immediately, with no wallet/convert step.
+     */
+    private void creditKnb(Account a, long amount) {
+        if (amount == 0) {
+            return;
+        }
+        if (!game.world().addKnbOnline(a.username, amount)) {
+            a.coin = Math.max(0, a.coin + amount);
+        }
+    }
+
     // ------------------------------------------------------------------
     // Admin operations
     // ------------------------------------------------------------------
@@ -532,16 +513,16 @@ public final class WebServer {
             throw new HttpError(404, "User");
         }
         if (deltaBalance != 0) {
-            a.balance = Math.max(0, a.balance + deltaBalance);
+            creditKnb(a, deltaBalance);
         }
         if (deltaGold != 0) {
             grantGold(a, deltaGold);
         }
         game.accounts().save();
         web.addTx(username, "admin_economy",
-                "Admin chỉnh: " + (deltaGold != 0 ? deltaGold + " vàng " : "") + (deltaBalance != 0 ? deltaBalance + " Xu" : ""),
+                "Admin chỉnh: " + (deltaGold != 0 ? deltaGold + " vàng " : "") + (deltaBalance != 0 ? deltaBalance + " KNB" : ""),
                 deltaGold + deltaBalance, "mixed", System.currentTimeMillis());
-        return Map.of("ok", true, "gold", a.gold, "balance", a.balance);
+        return Map.of("ok", true, "gold", a.gold, "knb", a.coin);
     }
 
     @SuppressWarnings("unchecked")
@@ -681,45 +662,6 @@ public final class WebServer {
         return Map.of("ok", true, "id", pk.id);
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> saveRedeemPackage(Map<String, Object> b) {
-        WebData.RedeemPackage pk = new WebData.RedeemPackage();
-        Object idv = b.get("id");
-        if (idv != null && toLong(idv) > 0) {
-            WebData.RedeemPackage found = web.redeemPackageById((int) toLong(idv));
-            if (found != null) {
-                pk = found;
-            }
-        }
-        if (pk.id == 0) {
-            pk.id = web.root().redeemSeq++;
-            web.root().redeemPackages.add(pk);
-        }
-        pk.name = str(b, "name");
-        pk.costXu = num(b, "costXu");
-        pk.coin = num(b, "coin");
-        pk.enabled = b.get("enabled") == null || Boolean.parseBoolean(String.valueOf(b.get("enabled")));
-        pk.bonus = new java.util.ArrayList<>();
-        Object bonus = b.get("bonus");
-        if (bonus instanceof List<?> list) {
-            for (Object o : list) {
-                if (o instanceof Map<?, ?> mm) {
-                    int itemId = (int) toLong(((Map<String, Object>) mm).get("itemId"));
-                    int count = (int) Math.max(1, toLong(((Map<String, Object>) mm).get("count")));
-                    if (itemId > 0) {
-                        pk.bonus.add(new WebData.ItemQty(itemId, count));
-                    }
-                }
-            }
-        }
-        if (pk.name.isBlank()) {
-            pk.name = pk.costXu + " Xu → " + pk.coin + " Tiền nạp";
-        }
-        web.save();
-        pushRedeemPackages();
-        return Map.of("ok", true, "id", pk.id);
-    }
-
     private Map<String, Object> saveProduct(Map<String, Object> b) {
         WebData.Product pr = new WebData.Product();
         Object idv = b.get("id");
@@ -764,7 +706,7 @@ public final class WebServer {
             m.put("username", a.username);
             m.put("role", a.role);
             m.put("banned", a.banned);
-            m.put("balance", a.balance);
+            m.put("knb", a.coin);
             m.put("gold", a.gold);
             m.put("level", a.level);
             m.put("online", game.world().findByName(a.username) != null);
@@ -890,20 +832,19 @@ public final class WebServer {
 
     private Map<String, Object> economyView() {
         long gold = 0;
-        long balance = 0;
+        long knb = 0;
         for (Account a : game.accounts().all()) {
             gold += a.gold;
-            balance += a.balance;
+            knb += a.coin;
         }
-        return Map.of("totalGold", gold, "totalBalance", balance, "accounts", game.accounts().count());
+        return Map.of("totalGold", gold, "totalKnb", knb, "accounts", game.accounts().count());
     }
 
     private Map<String, Object> accountView(Account a) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("username", a.username);
         m.put("role", a.role);
-        m.put("balance", a.balance);
-        m.put("coin", a.coin);
+        m.put("knb", a.coin);
         m.put("gold", a.gold);
         m.put("level", a.level);
         m.put("online", game.world().findByName(a.username) != null);

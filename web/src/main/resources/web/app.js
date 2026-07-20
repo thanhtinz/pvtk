@@ -243,7 +243,7 @@ const views = {
   async shop() {
     app().innerHTML = `<div class="bs-page">
       <h1 class="page-title">Webshop</h1>
-      <p class="lead">Mua bằng số dư Xu (nạp thẻ). Vật phẩm được gửi vào hòm thư trong game.</p>
+      <p class="lead">Mua bằng KNB (nạp thẻ). Vật phẩm được gửi vào hòm thư trong game.</p>
       <div class="row" id="g"></div></div>`;
     const { products } = await api('/shop');
     const g = document.getElementById('g');
@@ -253,7 +253,7 @@ const views = {
         <div class="flex"><img class="icon-thumb" src="${iconUrl(p.icon)}"/>
           <div><div class="card-title" style="margin:0">${esc(p.name)}</div>
             <div class="text-muted small">${esc(p.itemName)} × ${p.count}</div></div></div>
-        <div class="price" style="margin:14px 0 10px">${p.price} Xu</div>
+        <div class="price" style="margin:14px 0 10px">${p.price} KNB</div>
         <button class="btn btn-primary btn-sm" style="width:100%">Mua ngay</button>
       </div></div></div>`);
       c.querySelector('button').onclick = async () => {
@@ -268,9 +268,8 @@ const views = {
   async topup() {
     if (!T.token) return showLogin(false);
     app().innerHTML = `<div class="bs-page">
-      <h1 class="page-title">Nạp Xu qua SePay</h1>
-      <p class="lead">Chọn gói → quét QR / chuyển khoản đúng nội dung → hệ thống tự cộng Xu.
-        Trong game gõ lệnh <b class="text-primary">convert</b> để đổi Xu → Tiền nạp.</p>
+      <h1 class="page-title">Nạp KNB qua SePay</h1>
+      <p class="lead">Chọn gói → quét QR / chuyển khoản đúng nội dung → hệ thống <b class="text-primary">tự cộng KNB thẳng vào tài khoản game</b>, dùng được ngay.</p>
       <div class="row" id="packs"></div></div>`;
     const { packages, sepay } = await api('/packages');
     const g = document.getElementById('packs');
@@ -282,7 +281,7 @@ const views = {
     packages.forEach(p => {
       const c = el(`<div class="col-3"><div class="card"><div class="card-body" style="text-align:center">
         <div class="text-muted small">${esc(p.name)}</div>
-        <div class="price" style="margin:8px 0 2px">${p.xu + p.bonus} Xu</div>
+        <div class="price" style="margin:8px 0 2px">${p.knb + p.bonus} KNB</div>
         <div class="text-muted small">${p.priceVnd.toLocaleString('vi')} đ</div>
         ${p.bonus ? `<div style="margin:8px 0"><span class="badge rounded-pill text-bg-success">+${p.bonus} thưởng</span></div>` : '<div style="height:8px"></div>'}
         <button class="btn btn-primary btn-sm" style="width:100%">Nạp gói này</button>
@@ -318,12 +317,10 @@ const views = {
         <div class="col-6"><div class="card"><div class="card-body">
           <h4>Thông tin tài khoản</h4>
           <div class="info-row"><span class="k">Tài khoản</span><span class="v">${esc(me.username)} ${me.role === 'ADMIN' ? badge('ADMIN', 'text-bg-danger') : ''}</span></div>
-          <div class="info-row"><span class="k">Số dư Xu (web)</span><span class="v text-primary">${me.balance} Xu</span></div>
-          <div class="info-row"><span class="k">Tiền nạp trong game</span><span class="v">${me.coin ?? 0}</span></div>
+          <div class="info-row"><span class="k">KNB</span><span class="v text-primary">${me.knb ?? 0} KNB</span></div>
           <div class="info-row"><span class="k">Vàng trong game</span><span class="v">${me.gold}</span></div>
           <div class="info-row"><span class="k">Cấp độ</span><span class="v">${me.level}</span></div>
           <div class="info-row"><span class="k">Trạng thái</span><span class="v">${me.online ? badge('Đang online', 'text-bg-success') : badge('Offline', 'text-bg-secondary')}</span></div>
-          <p class="text-muted small" style="margin-top:12px">Đổi Xu → Tiền nạp: đăng nhập game và gõ lệnh <b>convert &lt;số xu&gt;</b>.</p>
         </div></div></div>
         <div class="col-6"><div class="card"><div class="card-body">
           <h4>Đổi mật khẩu</h4>
@@ -377,7 +374,7 @@ async function startOrder(packageId) {
   try {
     const o = await api('/topup/order', 'POST', { packageId });
     modal(`
-      <h3>Chuyển khoản để nhận ${o.xu} Xu</h3>
+      <h3>Chuyển khoản để nhận ${o.knb} KNB</h3>
       <div style="text-align:center"><img src="${esc(o.qrUrl)}" alt="QR" style="width:230px;max-width:100%;background:#fff;border-radius:10px"/></div>
       <table style="margin-top:10px">
         <tr><th>Ngân hàng</th><td>${esc(o.bankCode)}</td></tr>
@@ -386,7 +383,7 @@ async function startOrder(packageId) {
         <tr><th>Số tiền</th><td><b>${o.amountVnd.toLocaleString('vi')} đ</b></td></tr>
         <tr><th>Nội dung CK</th><td><b style="color:var(--gold)">${esc(o.content)}</b></td></tr>
       </table>
-      <p class="muted" id="ost">${ICON.clock} Đang chờ thanh toán... (tự cộng Xu khi nhận được tiền)</p>
+      <p class="muted" id="ost">${ICON.clock} Đang chờ thanh toán... (tự cộng KNB khi nhận được tiền)</p>
       <div class="row"><button class="btn sec" onclick="stopPoll();closeModal()">Đóng</button></div>`);
     if (_pollTimer) clearInterval(_pollTimer);
     _pollTimer = setInterval(async () => {
@@ -394,8 +391,8 @@ async function startOrder(packageId) {
         const s = await api('/topup/order/' + o.orderId);
         if (s.status === 'paid') {
           stopPoll();
-          document.getElementById('ost').innerHTML = ICON.check + ' Đã nhận thanh toán! Số dư: <b>' + s.balance + ' Xu</b>';
-          toast('Nạp thành công +' + s.xu + ' Xu!');
+          document.getElementById('ost').innerHTML = ICON.check + ' Đã nhận thanh toán! KNB: <b>' + s.balance + '</b>';
+          toast('Nạp thành công +' + s.knb + ' KNB!');
         }
       } catch (e) { /* keep polling */ }
     }, 3000);

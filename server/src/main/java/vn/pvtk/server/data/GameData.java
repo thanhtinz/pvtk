@@ -42,25 +42,12 @@ public final class GameData {
      */
     public record Drop(int itemId, int rate) { }
 
-    /** One bonus item bundled with a redeem package. */
-    public record RedeemBonus(int itemId, int count) { }
-
-    /**
-     * An in-game top-up package ("Gói nạp"): the player spends {@code costXu}
-     * from their web wallet to receive {@code coin} in-game cash plus any
-     * {@code bonus} items. Configured in the admin panel and pushed in from
-     * the web module at runtime.
-     */
-    public record RedeemPack(int id, String name, long costXu, long coin,
-                             List<RedeemBonus> bonus) { }
-
     // Typed registries built from the raw tables.
     private final Map<Integer, ItemDef> items = new LinkedHashMap<>();
     private final Map<Integer, MonsterDef> monsters = new LinkedHashMap<>();
     private final Map<Integer, SkillDef> skills = new LinkedHashMap<>();
     private final Map<Integer, List<ShopOffer>> shops = new LinkedHashMap<>();
     private final Map<Integer, List<Drop>> drops = new LinkedHashMap<>();
-    private volatile List<RedeemPack> redeemPacks = List.of();
 
     public GameData(Path assetsRoot) {
         this.assetsRoot = assetsRoot;
@@ -204,25 +191,6 @@ public final class GameData {
 
     public int dropTableCount() {
         return drops.size();
-    }
-
-    /** In-game top-up packages ("Gói nạp"), pushed in from the web/admin module. */
-    public List<RedeemPack> redeemPacks() {
-        return redeemPacks;
-    }
-
-    public RedeemPack redeemPack(int id) {
-        for (RedeemPack pk : redeemPacks) {
-            if (pk.id() == id) {
-                return pk;
-            }
-        }
-        return null;
-    }
-
-    /** Replaces the redeem-package catalogue (called whenever admin saves changes). */
-    public void setRedeemPacks(List<RedeemPack> packs) {
-        this.redeemPacks = packs == null ? List.of() : List.copyOf(packs);
     }
 
     public int shopCount() {

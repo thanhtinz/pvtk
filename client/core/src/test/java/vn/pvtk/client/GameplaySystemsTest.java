@@ -1,5 +1,6 @@
 package vn.pvtk.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -591,8 +592,8 @@ class GameplaySystemsTest {
     }
 
     @Test
-    void convertXuToCoinInGame() throws Exception {
-        AtomicReference<long[]> cur = new AtomicReference<>(); // [gold, coin, xu]
+    void topUpCreditsKnbDirectlyToOnlinePlayer() throws Exception {
+        AtomicReference<long[]> cur = new AtomicReference<>(); // [gold, coin(KNB), xu]
         GameClient c = new GameClient(new GameClientListener() {
             @Override public void onCurrency(long gold, long coin, long xu) {
                 cur.set(new long[]{gold, coin, xu});
@@ -601,13 +602,13 @@ class GameplaySystemsTest {
         c.connect("127.0.0.1", port);
         c.login("NapThu", "", 0);
         assertTrue(await(() -> c.state().self() != null), "login");
-        // Grant some web Xu directly on the shared account (as if topped up via SePay).
-        var acc = server.accounts().get("NapThu");
-        acc.balance = 150;
-        // Convert 100 Xu -> 100 coin in game.
-        c.convertXu(100);
-        assertTrue(await(() -> cur.get() != null && cur.get()[1] == 100 && cur.get()[2] == 50),
-                "after converting, coin=100 and xu=50");
+        // A web top-up credits KNB straight into the live character — no exchange step.
+        boolean online = server.world().addKnbOnline("NapThu", 100);
+        assertTrue(online, "player should be online for a live credit");
+        assertTrue(await(() -> cur.get() != null && cur.get()[1] == 100),
+                "top-up should push KNB=100 to the client immediately");
+        // The shared account is kept in sync so the web/leaderboard sees it too.
+        assertEquals(100, server.accounts().get("NapThu").coin, "account KNB synced");
         c.disconnect();
     }
 

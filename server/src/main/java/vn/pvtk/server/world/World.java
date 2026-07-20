@@ -442,6 +442,29 @@ public final class World {
         return true;
     }
 
+    /**
+     * Credits (or debits, if {@code delta} is negative) in-game KNB to a live
+     * player and keeps the shared account in sync, pushing the new balance to
+     * the client. Returns {@code false} if the player is offline, so the caller
+     * can persist to the account instead. This is how web top-ups land as
+     * spendable in-game currency immediately, with no manual conversion.
+     */
+    public boolean addKnbOnline(String name, long delta) {
+        PlayerSession s = findByName(name);
+        if (s == null || s.player() == null) {
+            return false;
+        }
+        Player p = s.player();
+        p.addCoin(delta);
+        long xu = 0;
+        if (s.account() != null) {
+            s.account().coin = p.coin(); // keep account authoritative for BXH / web
+            xu = s.account().balance;
+        }
+        s.send(new Messages.CurrencyInfo(p.gold(), p.coin(), xu).toPacket());
+        return true;
+    }
+
     /** Admin/web: sends a mail (optionally with gold + items) to a player, delivering live if online. */
     public void sendMail(String fromName, String toName, String subject, String body,
                          int gold, java.util.List<int[]> items) {

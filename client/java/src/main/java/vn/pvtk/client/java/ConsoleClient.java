@@ -297,10 +297,6 @@ public final class ConsoleClient {
                 }
                 case "arena" -> client.arenaQueue();
                 case "escort" -> client.startEscort();
-                case "convert" -> {
-                    if (t.length > 1) client.convertXu(Long.parseLong(t[1].trim()));
-                    else System.out.println("usage: convert <số xu>   (đổi Xu web → tiền nạp trong game)");
-                }
                 case "battle" -> {
                     if (t.length > 1) client.enterBattle(Integer.parseInt(t[1].trim()));
                     else System.out.println("usage: battle <monsterId>  (id từ 'who' khi ở map 3)");
@@ -365,7 +361,6 @@ public final class ConsoleClient {
         System.out.println("  friends | addf <name> | delf <name>   claim <mailId>");
         System.out.println("  war | declare <countryId>   arena (queue duel)   escort (mission)");
         System.out.println("  battle <monsterId> | plan <enemyIndex> [skillId]   (turn-based)");
-        System.out.println("  convert <số xu>      đổi Xu (web) → tiền nạp trong game");
         System.out.println("  country create <name> | list | join <id> | leave | info");
         System.out.println("  quit");
     }

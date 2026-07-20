@@ -98,12 +98,8 @@ public interface GameClientListener {
     default void onBattleUpdate(BattleUpdate battle) {
     }
 
-    /** Currency balances changed (gold / coin "Tiền nạp" / xu). */
+    /** Currency balances changed (gold / KNB / legacy xu). */
     default void onCurrency(long gold, long coin, long xu) {
-    }
-
-    /** The in-game top-up package menu ("Gói nạp") arrived. */
-    default void onRedeemList(vn.pvtk.protocol.message.Messages.RedeemList packages) {
     }
 
     default void onDisconnected(String reason) {

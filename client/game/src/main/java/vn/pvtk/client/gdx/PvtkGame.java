@@ -20,8 +20,6 @@ import vn.pvtk.client.model.Entity;
 import java.util.List;
 import vn.pvtk.protocol.message.Messages.ChatBroadcast;
 import vn.pvtk.protocol.message.Messages.CombatEvent;
-import vn.pvtk.protocol.message.Messages.RedeemEntry;
-import vn.pvtk.protocol.message.Messages.RedeemList;
 
 /**
  * The shared libGDX game (identical on PC, Android and iOS). It renders the world
@@ -51,13 +49,6 @@ public final class PvtkGame extends ApplicationAdapter {
     // Real jar-decoded hit/skill effect animation, played on combat events.
     private SprAnimator hitFx;
     private final List<float[]> effects = new java.util.ArrayList<>(); // {worldX, worldY, elapsed}
-
-    // "Gói nạp" (in-game top-up) menu state.
-    private volatile List<RedeemEntry> redeemPackages = List.of();
-    private boolean redeemOpen;
-    // Button / panel geometry (bottom-left origin), recomputed each frame.
-    private static final float NAP_W = 120f, NAP_H = 34f;
-    private static final float PANEL_W = 380f, ROW_H = 46f, HEAD_H = 42f, FOOT_H = 40f;
 
     public PvtkGame(PvtkConfig config) {
         this.config = config;
@@ -156,9 +147,8 @@ public final class PvtkGame extends ApplicationAdapter {
         }
         font.setColor(Color.LIGHT_GRAY);
         font.draw(batch, "PVTK  " + status
-                        + "   gold=" + client.state().gold()
-                        + "  tiền nạp=" + client.state().coin()
-                        + "  xu=" + client.state().xu()
+                        + "   vàng=" + client.state().gold()
+                        + "  KNB=" + client.state().coin()
                         + "  items=" + client.state().inventory().bag().size(),
                 8, Gdx.graphics.getHeight() - 8);
         font.draw(batch, "tap monster = battle   tap ground = move", 8, Gdx.graphics.getHeight() - 26);
@@ -185,12 +175,6 @@ public final class PvtkGame extends ApplicationAdapter {
             }
         }
         batch.end();
-
-        // "Gói nạp" button + package menu (drawn on top of everything else).
-        drawNapButton();
-        if (redeemOpen) {
-            drawRedeemOverlay();
-        }
     }
 
     /** Queues a hit/skill effect animation over the given entity (by id). */
@@ -241,106 +225,6 @@ public final class PvtkGame extends ApplicationAdapter {
         batch.end();
     }
 
-    /** Bottom-right "NẠP GAME" button that opens the top-up package menu. */
-    private void drawNapButton() {
-        float w = Gdx.graphics.getWidth();
-        float bx = w - NAP_W - 12f, by = 12f;
-        shapes.setProjectionMatrix(camera.combined);
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0.82f, 0.15f, 0.16f, 0.95f);
-        shapes.rect(bx, by, NAP_W, NAP_H);
-        shapes.end();
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        font.setColor(Color.WHITE);
-        font.draw(batch, "NẠP GAME", bx + 18f, by + NAP_H - 10f);
-        batch.end();
-    }
-
-    /** Modal list of redeem packages; tap a row to redeem, tap the footer to close. */
-    private void drawRedeemOverlay() {
-        float w = Gdx.graphics.getWidth(), h = Gdx.graphics.getHeight();
-        int n = Math.max(1, redeemPackages.size());
-        float panelH = HEAD_H + n * ROW_H + FOOT_H;
-        float px = (w - PANEL_W) / 2f, py = (h - panelH) / 2f;
-
-        shapes.setProjectionMatrix(camera.combined);
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0f, 0f, 0f, 0.6f);            // dim backdrop
-        shapes.rect(0, 0, w, h);
-        shapes.setColor(0.11f, 0.12f, 0.16f, 0.98f);  // panel
-        shapes.rect(px, py, PANEL_W, panelH);
-        shapes.setColor(0.82f, 0.15f, 0.16f, 1f);     // header bar
-        shapes.rect(px, py + panelH - HEAD_H, PANEL_W, HEAD_H);
-        for (int i = 0; i < redeemPackages.size(); i++) {
-            float ry = py + panelH - HEAD_H - (i + 1) * ROW_H;
-            shapes.setColor(i % 2 == 0 ? 0.16f : 0.13f, 0.17f, 0.22f, 1f);
-            shapes.rect(px + 8f, ry + 4f, PANEL_W - 16f, ROW_H - 8f);
-        }
-        shapes.setColor(0.30f, 0.32f, 0.38f, 1f);     // footer (close)
-        shapes.rect(px + 8f, py + 6f, PANEL_W - 16f, FOOT_H - 12f);
-        shapes.end();
-
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        font.setColor(Color.WHITE);
-        font.draw(batch, "GÓI NẠP - đổi Xu lấy Tiền nạp", px + 14f, py + panelH - 14f);
-        font.setColor(Color.GOLD);
-        font.draw(batch, "Xu hiện có: " + client.state().xu(), px + PANEL_W - 150f, py + panelH - 14f);
-        if (redeemPackages.isEmpty()) {
-            font.setColor(Color.LIGHT_GRAY);
-            font.draw(batch, "Chưa có gói nạp nào (admin cấu hình).",
-                    px + 16f, py + panelH - HEAD_H - 24f);
-        }
-        for (int i = 0; i < redeemPackages.size(); i++) {
-            RedeemEntry e = redeemPackages.get(i);
-            float ry = py + panelH - HEAD_H - (i + 1) * ROW_H;
-            font.setColor(Color.WHITE);
-            font.draw(batch, e.name(), px + 16f, ry + ROW_H - 12f);
-            font.setColor(Color.SKY);
-            String sub = e.costXu() + " Xu  ->  +" + e.coin() + " Tiền nạp"
-                    + (e.bonus() != null && !e.bonus().isEmpty() ? "  + " + e.bonus() : "");
-            font.draw(batch, sub, px + 16f, ry + 18f);
-        }
-        font.setColor(Color.WHITE);
-        font.draw(batch, "ĐÓNG", px + PANEL_W / 2f - 24f, py + FOOT_H - 12f);
-        batch.end();
-    }
-
-    /** Handles a tap while UI (button/overlay) is showing. Returns true if consumed. */
-    private boolean handleUiTap(int screenX, int screenY) {
-        float w = Gdx.graphics.getWidth(), h = Gdx.graphics.getHeight();
-        float gx = screenX, gy = h - screenY; // to bottom-left origin
-        if (redeemOpen) {
-            int n = Math.max(1, redeemPackages.size());
-            float panelH = HEAD_H + n * ROW_H + FOOT_H;
-            float px = (w - PANEL_W) / 2f, py = (h - panelH) / 2f;
-            // Footer / close (also acts as "tap outside" when outside the panel).
-            boolean inPanel = gx >= px && gx <= px + PANEL_W && gy >= py && gy <= py + panelH;
-            float fy0 = py + 6f, fy1 = py + FOOT_H - 6f;
-            if (!inPanel || (gy >= fy0 && gy <= fy1)) {
-                redeemOpen = false;
-                return true;
-            }
-            for (int i = 0; i < redeemPackages.size(); i++) {
-                float ry = py + panelH - HEAD_H - (i + 1) * ROW_H;
-                if (gy >= ry + 4f && gy <= ry + ROW_H - 4f
-                        && gx >= px + 8f && gx <= px + PANEL_W - 8f) {
-                    client.redeemPackage(redeemPackages.get(i).id());
-                    redeemOpen = false;
-                    return true;
-                }
-            }
-            return true; // swallow taps inside the modal
-        }
-        // "NẠP GAME" button.
-        float bx = w - NAP_W - 12f, by = 12f;
-        if (gx >= bx && gx <= bx + NAP_W && gy >= by && gy <= by + NAP_H) {
-            client.requestRedeemPackages();
-            return true;
-        }
-        return false;
-    }
 
     private void drawBackground(Entity self) {
         int mapId = self != null ? self.mapId : 1;
@@ -479,12 +363,6 @@ public final class PvtkGame extends ApplicationAdapter {
         @Override public void onDisconnected(String reason) {
             Gdx.app.postRunnable(() -> status = "disconnected: " + reason);
         }
-        @Override public void onRedeemList(RedeemList packages) {
-            Gdx.app.postRunnable(() -> {
-                redeemPackages = packages.packages();
-                redeemOpen = true;
-            });
-        }
     }
 
     /**
@@ -493,9 +371,6 @@ public final class PvtkGame extends ApplicationAdapter {
      */
     private final class TapHandler extends InputAdapter {
         @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (handleUiTap(screenX, screenY)) {
-                return true;
-            }
             var battle = client.state().battle();
             if (battle != null) {
                 battle.combatants().stream().filter(u -> u.side() == 1 && u.hp() > 0)
