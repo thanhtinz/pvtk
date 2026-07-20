@@ -429,3 +429,30 @@ body.portal header.site nav a { padding: 8px 11px; font-size: 14px; white-space:
 
 /* image section title */
 .cal-img { display: block; margin: 0 auto 18px; max-width: min(440px, 88%); height: auto; }
+
+/* ---- more real art (portal) ---- */
+.badge18-img { height: 40px; width: auto; display: block; }
+.hero-art { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.hero-tag { height: min(220px, 46vw); width: auto; filter: drop-shadow(0 6px 16px rgba(0,0,0,.3)); }
+@media (max-width: 600px){ .hero-tag { height: 150px; } }
+
+/* Nhân Vật character carousel */
+.char-stage {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 420px; max-width: 760px; margin: 0 auto;
+}
+.char-portrait { width: min(620px, 92%); height: auto; filter: drop-shadow(0 12px 26px rgba(20,60,55,.25)); transition: opacity .15s; }
+.char-arrow { cursor: pointer; flex: none; transition: transform .12s, filter .12s; z-index: 2; }
+.char-arrow img { height: 64px; width: auto; display: block; }
+.char-arrow:hover { transform: scale(1.08); filter: brightness(1.08); }
+.char-arrow.left { position: absolute; left: 0; }
+.char-arrow.right { position: absolute; right: 0; }
+.gender-toggle { position: absolute; right: 6px; bottom: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+.gender-toggle a { cursor: pointer; transition: transform .12s; display: block; }
+.gender-toggle a:hover { transform: translateX(-3px); }
+.gender-toggle img { width: 52px; height: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,.3)); }
+@media (max-width: 600px){
+  .char-stage { min-height: 300px; }
+  .char-arrow img { height: 46px; }
+  .gender-toggle img { width: 42px; }
+}

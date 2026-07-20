@@ -80,8 +80,10 @@ const views = {
   async home() {
     app().innerHTML = `
       <section class="hero-banner">
-        <img class="hero-logo-img" src="/img/logo-dragon.png" alt="Phong Vân Truyền Kỳ"/>
-        <div class="hero-sub">⚔ Huyền Thoại Turn-Base · 10 Năm Kinh Điển</div>
+        <div class="hero-art">
+          <img class="hero-logo-img" src="/img/logo-dragon.png" alt="Phong Vân Truyền Kỳ"/>
+          <img class="hero-tag" src="/img/tag-10nam.png" alt="10 Năm Kinh Điển · Huyền Thoại Turn-Base"/>
+        </div>
       </section>
 
       <div class="action-row imgs">
@@ -91,7 +93,7 @@ const views = {
       </div>
 
       <section class="portal-sec">
-        <h2 class="cal">Tin Tức</h2>
+        <img class="cal-img" src="/img/title-tintuc.png" alt="Tin Tức"/>
         <div class="news-tabs" id="newsTabs">
           <a data-f="all" class="active">TIN TỨC</a>
           <a data-f="event">SỰ KIỆN</a>
@@ -104,10 +106,42 @@ const views = {
         </div>
       </section>
 
+      <section class="portal-sec nhanvat">
+        <img class="cal-img" src="/img/title-nhanvat.png" alt="Nhân Vật"/>
+        <div class="char-stage">
+          <a class="char-arrow left" id="charPrev"><img src="/img/arrow-left.png" alt="‹"/></a>
+          <img class="char-portrait" id="charImg" src="/img/char-nam-1.png" alt="Nhân vật"/>
+          <a class="char-arrow right" id="charNext"><img src="/img/arrow-right.png" alt="›"/></a>
+          <div class="gender-toggle">
+            <a id="genNam" title="Nam"><img id="genNamImg" src="/img/nam-on.png" alt="Nam"/></a>
+            <a id="genNu" title="Nữ"><img id="genNuImg" src="/img/nu-off.png" alt="Nữ"/></a>
+          </div>
+        </div>
+      </section>
+
       <section class="portal-sec">
         <img class="cal-img" src="/img/title-dacsac.png" alt="Đặc Sắc"/>
         <div class="feat-grid" id="featGrid"></div>
       </section>`;
+
+    // Nhân Vật carousel: NAM/NỮ rosters, prev/next arrows.
+    const roster = {
+      nam: [1, 2, 3, 4, 5, 6, 7, 8].map(i => `/img/char-nam-${i}.png`),
+      nu: ['/img/char-nu-1.png', '/img/char-nu-1b.png', '/img/char-nu-2.png', '/img/char-nu-3.png',
+           '/img/char-nu-4.png', '/img/char-nu-5.png', '/img/char-nu-6.png', '/img/char-nu-7.png', '/img/char-nu-8.png'],
+    };
+    let gender = 'nam', ci = 0;
+    const charImg = document.getElementById('charImg');
+    const paint = () => {
+      charImg.src = roster[gender][((ci % roster[gender].length) + roster[gender].length) % roster[gender].length];
+      document.getElementById('genNamImg').src = gender === 'nam' ? '/img/nam-on.png' : '/img/nam-off.png';
+      document.getElementById('genNuImg').src = gender === 'nu' ? '/img/nu-on.png' : '/img/nu-off.png';
+    };
+    document.getElementById('charPrev').onclick = () => { ci--; paint(); };
+    document.getElementById('charNext').onclick = () => { ci++; paint(); };
+    document.getElementById('genNam').onclick = () => { gender = 'nam'; ci = 0; paint(); };
+    document.getElementById('genNu').onclick = () => { gender = 'nu'; ci = 0; paint(); };
+    paint();
 
     // Features
     const fg = document.getElementById('featGrid');
