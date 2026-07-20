@@ -63,8 +63,9 @@ class MultiplayerIntegrationTest {
         assertTrue(bLogin.await(3, TimeUnit.SECONDS), "Bob should log in");
 
         // B's snapshot should include Alice; A should learn about Bob via spawn.
-        assertTrue(await(() -> b.state().others().size() == 1), "Bob should see Alice");
-        assertTrue(await(() -> a.state().others().size() == 1), "Alice should see Bob spawn");
+        // (Filter to players — the starting map also holds monsters.)
+        assertTrue(await(() -> otherPlayers(b) == 1), "Bob should see Alice");
+        assertTrue(await(() -> otherPlayers(a) == 1), "Alice should see Bob spawn");
         assertEquals(2, server.sessions().onlineCount());
 
         int bobId = b.state().self().id;
@@ -101,6 +102,13 @@ class MultiplayerIntegrationTest {
     }
 
     /** Polls a condition for up to 3 seconds. */
+    /** Counts other players (KIND_PLAYER) visible to a client, ignoring monsters/pets/NPCs. */
+    private static long otherPlayers(GameClient c) {
+        return c.state().others().stream()
+                .filter(e -> e.kind == vn.pvtk.protocol.message.Messages.KIND_PLAYER)
+                .count();
+    }
+
     private static boolean await(java.util.function.BooleanSupplier cond) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
         while (System.nanoTime() < deadline) {

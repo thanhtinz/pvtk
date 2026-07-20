@@ -22,7 +22,9 @@ from the legacy client and re-implemented in clean Java 21.
   platform.
 - 🎮 **libGDX game** — single rendering/input codebase → PC + Android + iOS.
 - ⚔️ **Gameplay systems** — inventory & equipment (`item.txt`), monster combat
-  with rewards/level-ups & respawn (`monster.txt`), skills with MP (`skill.txt`),
+  with rewards/level-ups, **item drops** (`monster_reward.txt` loot tables) &
+  respawn (`monster.txt`), tiered monster spawns across town/city/wilderness,
+  skills with MP (`skill.txt`),
   NPC shops (`shop.txt`), quests, achievements, a player marketplace, pet
   companions that follow & auto-fight, friends, mail (with gold/item
   attachments), party/team, map travel, country/guild, **country war**,

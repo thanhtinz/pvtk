@@ -35,11 +35,19 @@ public final class GameData {
     /** One purchasable line in an NPC shop: an item and its gold price. */
     public record ShopOffer(int itemId, int price) { }
 
+    /**
+     * One loot entry for a monster: the item it can drop and the drop rate,
+     * expressed out of 1,000,000 (the original data's scale). A rate of 0 means
+     * a guaranteed drop (the monster's primary loot).
+     */
+    public record Drop(int itemId, int rate) { }
+
     // Typed registries built from the raw tables.
     private final Map<Integer, ItemDef> items = new LinkedHashMap<>();
     private final Map<Integer, MonsterDef> monsters = new LinkedHashMap<>();
     private final Map<Integer, SkillDef> skills = new LinkedHashMap<>();
     private final Map<Integer, List<ShopOffer>> shops = new LinkedHashMap<>();
+    private final Map<Integer, List<Drop>> drops = new LinkedHashMap<>();
 
     public GameData(Path assetsRoot) {
         this.assetsRoot = assetsRoot;
@@ -74,13 +82,13 @@ public final class GameData {
             return this;
         }
         for (String name : List.of("item", "monster", "monsterGroup", "monster_reward",
-                "skill", "skill_shop", "shop", "player", "player_skill", "job_setting")) {
+                "monsterAI", "skill", "skill_shop", "shop", "player", "player_skill", "job_setting")) {
             load(name);
         }
         buildRegistries();
-        log.info("Loaded content DB from {}: {} items, {} monsters, {} skills, {} shops",
+        log.info("Loaded content DB from {}: {} items, {} monsters, {} skills, {} shops, {} drop tables",
                 assetsRoot.toAbsolutePath(),
-                items.size(), monsters.size(), count("skill"), count("shop"));
+                items.size(), monsters.size(), count("skill"), count("shop"), drops.size());
         return this;
     }
 
@@ -120,6 +128,17 @@ public final class GameData {
                 int price = parse(row.get("money1"));
                 if (shopId > 0 && itemId > 0) {
                     shops.computeIfAbsent(shopId, k -> new ArrayList<>()).add(new ShopOffer(itemId, price));
+                }
+            }
+        }
+        DataTable rewardTable = tables.get("monster_reward");
+        if (rewardTable != null) {
+            for (Map<String, String> row : rewardTable.rows()) {
+                int monsterId = parse(row.get("id"));
+                int itemId = parse(row.get("itemID"));
+                int rate = parse(row.get("dropRate"));
+                if (monsterId > 0 && itemId > 0 && items.containsKey(itemId)) {
+                    drops.computeIfAbsent(monsterId, k -> new ArrayList<>()).add(new Drop(itemId, rate));
                 }
             }
         }
@@ -163,6 +182,15 @@ public final class GameData {
     /** Offers for an NPC shop, or an empty list if the shop id is unknown. */
     public List<ShopOffer> shop(int shopId) {
         return shops.getOrDefault(shopId, List.of());
+    }
+
+    /** Loot table for a monster id, or an empty list if it has no drops. */
+    public List<Drop> drops(int monsterId) {
+        return drops.getOrDefault(monsterId, List.of());
+    }
+
+    public int dropTableCount() {
+        return drops.size();
     }
 
     public int shopCount() {

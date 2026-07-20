@@ -44,6 +44,7 @@ public final class World {
     // monsters indexed globally by id and per-map for AOI.
     private final Map<Integer, Monster> monstersById = new ConcurrentHashMap<>();
     private final Map<Integer, List<Monster>> monstersByMap = new ConcurrentHashMap<>();
+    private final java.util.Random rng = new java.util.Random();
 
     public World(SessionManager sessions, GameData data, vn.pvtk.server.account.AccountService accounts) {
         this.sessions = sessions;
@@ -135,6 +136,12 @@ public final class World {
             p.addExp(battle.rewardExp());
             p.addKill();
             p.incrementKillQuests();
+            for (int enemyId : battle.enemyEntityIds()) {
+                Monster m = monstersById.get(enemyId);
+                if (m != null) {
+                    awardLoot(session, m.def());
+                }
+            }
             endBattle(session, battle);
             session.send(new Messages.Spawn(p.toState()).toPacket());
             checkAchievements(session);
@@ -338,21 +345,34 @@ public final class World {
         if (defs.isEmpty()) {
             return;
         }
-        // Weakest first, so the starter wilderness has beatable monsters.
+        // Weakest first, so the low tiers stay beatable for new players.
         defs.sort((a, b) -> a.level() != b.level()
                 ? Integer.compare(a.level(), b.level())
                 : Integer.compare(a.hpMax(), b.hpMax()));
-        MapInstance wild = maps.get(3);
-        int count = Math.min(12, defs.size());
+        // Populate the previously-empty newbie town and city with the weakest
+        // monsters (which also carry the guaranteed drops), and keep the
+        // wilderness as the main hunting ground with a broad weakest-first
+        // spread. The arena (map 4) stays empty.
+        int half = Math.max(1, defs.size() / 2);
+        spawnTier(maps.get(1), defs.subList(0, Math.min(6, defs.size())), 6);
+        spawnTier(maps.get(2), defs.subList(0, Math.min(half, defs.size())), 10);
+        spawnTier(maps.get(3), defs, 16);
+    }
+
+    /** Scatters up to {@code count} monsters drawn from {@code tier} across a map. */
+    private void spawnTier(MapInstance map, List<MonsterDef> tier, int count) {
+        if (map == null || tier.isEmpty()) {
+            return;
+        }
         for (int i = 0; i < count; i++) {
-            MonsterDef def = defs.get(i % defs.size());
-            int x = 8 + (i * 7) % (wild.width() - 16);
-            int y = 8 + (i * 11) % (wild.height() - 16);
+            MonsterDef def = tier.get(i % tier.size());
+            int x = 6 + (i * 7) % Math.max(1, map.width() - 12);
+            int y = 6 + (i * 11) % Math.max(1, map.height() - 12);
             Monster m = new Monster(def, x, y);
             monstersById.put(m.id(), m);
-            monstersByMap.get(wild.mapId()).add(m);
+            monstersByMap.get(map.mapId()).add(m);
         }
-        log.info("Spawned {} monsters into map {} [{}]", count, wild.mapId(), wild.name());
+        log.info("Spawned {} monsters into map {} [{}]", count, map.mapId(), map.name());
     }
 
     public Monster monster(int id) {
@@ -528,6 +548,7 @@ public final class World {
                 p.addExp(target.def().rewardExp());
                 p.addKill();
                 p.incrementKillQuests();
+                awardLoot(owner, target.def());
                 owner.send(new Messages.Spawn(p.toState()).toPacket());
                 broadcastToMap(map, new Messages.Despawn(target.id()).toPacket(), -1);
                 checkAchievements(owner);
@@ -650,6 +671,7 @@ public final class World {
                 boolean leveled = attacker.addExp(monster.def().rewardExp());
                 attacker.addKill();
                 attacker.incrementKillQuests();
+                awardLoot(session, monster.def());
                 // Reward & possible level-up are reflected in the attacker's own state.
                 session.send(new Messages.Spawn(attacker.toState()).toPacket());
                 if (leveled) {
@@ -716,6 +738,47 @@ public final class World {
                 }
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Loot
+    // ------------------------------------------------------------------
+
+    /**
+     * Rolls a slain monster's loot table ({@code monster_reward.txt}), adds any
+     * dropped items to the killer's bag, and (if online) pushes a fresh bag
+     * snapshot plus a system chat line naming what dropped. Returns the dropped
+     * items as {@code {itemId, count}} pairs (used by the turn-battle reward).
+     */
+    public List<int[]> awardLoot(PlayerSession session, MonsterDef def) {
+        List<int[]> dropped = new ArrayList<>();
+        if (def == null) {
+            return dropped;
+        }
+        Player p = session.player();
+        StringBuilder names = new StringBuilder();
+        for (GameData.Drop drop : data.drops(def.id())) {
+            boolean hit = drop.rate() <= 0 || rng.nextInt(1_000_000) < drop.rate();
+            if (!hit) {
+                continue;
+            }
+            if (p.inventory().add(drop.itemId(), 1) < 0) {
+                continue; // bag full
+            }
+            dropped.add(new int[] {drop.itemId(), 1});
+            var itemDef = data.item(drop.itemId());
+            if (names.length() > 0) {
+                names.append(", ");
+            }
+            names.append(itemDef != null ? itemDef.name() : ("#" + drop.itemId()));
+        }
+        if (!dropped.isEmpty()) {
+            session.send(new Messages.BagSnapshot(p.gold(), p.inventory().bagStacks(),
+                    p.inventory().equipmentStacks()).toPacket());
+            session.send(new Messages.ChatBroadcast(Messages.Channel.SYSTEM, 0, "Rơi đồ",
+                    "Bạn nhặt được: " + names).toPacket());
+        }
+        return dropped;
     }
 
     // ------------------------------------------------------------------

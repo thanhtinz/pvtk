@@ -91,6 +91,61 @@ class GameplaySystemsTest {
     }
 
     @Test
+    void killingMonstersDropsLootIntoBag() throws Exception {
+        AtomicReference<Messages.BattleUpdate> battle = new AtomicReference<>();
+        GameClient c = new GameClient(new GameClientListener() {
+            @Override public void onBattleUpdate(Messages.BattleUpdate b) {
+                battle.set(b);
+            }
+        });
+        c.connect("127.0.0.1", port);
+        c.login("ThoSan", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+
+        // The newbie town (map 1) now holds the weakest monsters, which carry the
+        // guaranteed drops from monster_reward.txt. Fight them until loot lands in
+        // the bag (each victory rolls the monster's loot table).
+        c.jumpMap(1);
+        assertTrue(await(() -> c.state().others().stream().anyMatch(Entity::isMonster)),
+                "should see monsters on map 1");
+
+        int before = totalBagCount(c);
+        boolean looted = false;
+        for (int attempt = 0; attempt < 6 && !looted; attempt++) {
+            Entity monster = c.state().others().stream()
+                    .filter(Entity::isMonster).filter(e -> e.hp > 0).findFirst().orElse(null);
+            if (monster == null) {
+                Thread.sleep(100);
+                continue;
+            }
+            battle.set(null);
+            c.enterBattle(monster.id);
+            if (!await(() -> battle.get() != null && !battle.get().combatants().isEmpty())) {
+                continue;
+            }
+            int enemyIndex = battle.get().combatants().stream()
+                    .filter(u -> u.side() == 1).findFirst().orElseThrow().index();
+            for (int round = 0; round < 60; round++) {
+                var cur = battle.get();
+                if (cur == null || cur.roundState() != 0) {
+                    break;
+                }
+                battle.set(null);
+                c.battlePlan(cur.round(), enemyIndex, 0);
+                await(() -> battle.get() != null);
+            }
+            await(() -> !c.state().inBattle());
+            looted = totalBagCount(c) > before;
+        }
+        assertTrue(looted, "winning battles should drop loot into the bag");
+        c.disconnect();
+    }
+
+    private static int totalBagCount(GameClient c) {
+        return c.state().inventory().bag().stream().mapToInt(s -> s.count()).sum();
+    }
+
+    @Test
     void countryCreateListAndJoin() throws Exception {
         AtomicReference<CountryActionResult> aCreate = new AtomicReference<>();
         GameClient a = new GameClient(new GameClientListener() {
