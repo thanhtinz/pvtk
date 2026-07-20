@@ -28,7 +28,58 @@
     </div>
   </header>
 
+  <!-- Bootstrap-style navbar for logged-in content pages (shown when body.bs) -->
+  <header class="bs-header">
+    <nav class="bs-navbar">
+      <a class="bs-brand" href="#home"><img src="/img/logo-dragon.png" alt=""/> PHONG VÂN</a>
+      <button class="bs-toggler" id="bsToggler" aria-label="Menu" data-icon="menu"></button>
+      <div class="bs-collapse" id="bsCollapse">
+        <ul class="bs-nav">
+          <li><a data-view="home">Trang chủ</a></li>
+          <li><a data-view="news">Tin tức</a></li>
+          <li><a data-view="leaderboard">BXH</a></li>
+          <li><a data-view="shop">Webshop</a></li>
+          <li><a data-view="topup">Nạp thẻ</a></li>
+          <li><a data-view="giftcode">Giftcode</a></li>
+          <li><a data-view="profile" class="auth-only hidden">Cá nhân</a></li>
+        </ul>
+        <div class="bs-userbox" id="bsUserbox"></div>
+      </div>
+    </nav>
+  </header>
+
   <main id="app"></main>
+
+  <!-- Bootstrap-style multi-column footer for content pages -->
+  <footer class="bs-footer">
+    <div class="bs-foot-grid">
+      <div class="bs-foot-col brandcol">
+        <div class="bs-foot-brand"><img src="/img/logo-dragon.png" alt=""/> Phong Vân Online</div>
+        <p>Bản dựng lại đa nền tảng (PC · Android · iOS · Java) của tựa game kiếm hiệp huyền thoại.</p>
+      </div>
+      <div class="bs-foot-col">
+        <h5>Liên kết</h5>
+        <a data-view="home">Trang chủ</a>
+        <a data-view="news">Tin tức &amp; Sự kiện</a>
+        <a data-view="leaderboard">Bảng xếp hạng</a>
+        <a data-view="profile" class="auth-only hidden">Trang cá nhân</a>
+      </div>
+      <div class="bs-foot-col">
+        <h5>Hỗ trợ</h5>
+        <a data-view="topup">Nạp thẻ</a>
+        <a data-view="giftcode">Giftcode</a>
+        <a id="bsGuide">Hướng dẫn</a>
+        <a onclick="showDownload()">Tải game</a>
+      </div>
+      <div class="bs-foot-col">
+        <h5>Liên hệ</h5>
+        <a id="bsEmail"><span data-icon="mail"></span> <span id="bsEmailT"></span></a>
+        <a id="bsPhone"><span data-icon="phone"></span> <span id="bsPhoneT"></span></a>
+        <a id="bsFb" target="_blank" rel="noopener"><span data-icon="facebook"></span> Facebook</a>
+      </div>
+    </div>
+    <div class="bs-foot-bottom">© 2024 Phong Vân Online · Server cộng đồng · Chơi miễn phí · Điều khoản · Bảo mật</div>
+  </footer>
 
   <footer class="site">
     <div class="foot-icons">

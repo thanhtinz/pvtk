@@ -575,3 +575,68 @@ body.bs { background: #eef1f5; }
 .bs-page .info-row .v { font-weight: 600; }
 .bs-page .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: #e9ecef; color: #495057; }
 .bs-page .rank-badge.g1 { background: #ffe28a; color: #7a5c00; } .bs-page .rank-badge.g2 { background: #dfe3e8; color: #4a5560; } .bs-page .rank-badge.g3 { background: #f2cba3; color: #7a4a1e; }
+
+/* =====================================================================
+   Bootstrap-style navbar + footer for logged-in pages (body.bs)
+   ===================================================================== */
+.bs-header, .bs-footer { display: none; }
+body.bs header.site, body.bs footer.site { display: none; }
+body.bs .bs-header { display: block; }
+body.bs .bs-footer { display: block; }
+
+/* navbar */
+.bs-header { position: sticky; top: 0; z-index: 30; background: #1e293b; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.bs-navbar { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 0 16px; min-height: 58px; }
+.bs-brand { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 1.15rem; letter-spacing: .5px; white-space: nowrap; font-family: system-ui, "Segoe UI", sans-serif; }
+.bs-brand img { height: 30px; width: auto; }
+.bs-collapse { display: flex; align-items: center; gap: 8px; flex: 1; }
+.bs-nav { display: flex; align-items: center; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.bs-nav a { display: block; padding: 8px 14px; color: rgba(255,255,255,.75); font-weight: 500; font-size: .95rem; border-radius: .375rem; cursor: pointer; transition: .15s; font-family: system-ui, sans-serif; }
+.bs-nav a:hover { color: #fff; background: rgba(255,255,255,.08); }
+.bs-nav a.active { color: #fff; background: #0d6efd; }
+.bs-userbox { margin-left: auto; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.bs-userbox .who { color: #cbd5e1; font-size: .92rem; display: inline-flex; align-items: center; gap: 6px; }
+.bs-userbox .bbtn { display: inline-flex; align-items: center; gap: 6px; padding: .38rem .9rem; border-radius: .375rem; font-weight: 500; font-size: .9rem; cursor: pointer; border: 1px solid transparent; font-family: system-ui, sans-serif; }
+.bs-userbox .bbtn.primary { background: #0d6efd; color: #fff; }
+.bs-userbox .bbtn.primary:hover { background: #0b5ed7; }
+.bs-userbox .bbtn.outline { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
+.bs-userbox .bbtn.outline:hover { background: rgba(255,255,255,.1); }
+.bs-toggler { display: none; margin-left: auto; background: none; border: 1px solid rgba(255,255,255,.4); border-radius: .375rem; color: #fff; font-size: 22px; padding: 3px 9px; cursor: pointer; }
+
+/* footer */
+.bs-footer { background: #111827; color: #9ca3af; font-family: system-ui, "Segoe UI", sans-serif; }
+.bs-foot-grid { max-width: 1140px; margin: 0 auto; padding: 44px 16px 28px; display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.2fr; gap: 32px; }
+.bs-foot-col h5 { color: #e5e7eb; font-size: 1rem; font-weight: 600; margin: 0 0 14px; font-family: inherit; }
+.bs-foot-col a { display: block; color: #9ca3af; padding: 5px 0; font-size: .92rem; cursor: pointer; }
+.bs-foot-col a:hover { color: #60a5fa; }
+.bs-foot-brand { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 12px; }
+.bs-foot-brand img { height: 34px; }
+.bs-foot-col.brandcol p { color: #9ca3af; font-size: .9rem; line-height: 1.6; margin: 0; max-width: 320px; }
+.bs-foot-bottom { border-top: 1px solid #1f2937; text-align: center; padding: 18px 16px; color: #6b7280; font-size: .85rem; }
+
+@media (max-width: 860px) {
+  .bs-toggler { display: block; }
+  .bs-collapse { display: none; position: absolute; top: 58px; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 4px; background: #1e293b; padding: 12px 16px; box-shadow: 0 10px 20px rgba(0,0,0,.3); }
+  .bs-collapse.open { display: flex; }
+  .bs-nav { flex-direction: column; align-items: stretch; }
+  .bs-nav a { padding: 12px 14px; }
+  .bs-userbox { margin-left: 0; padding-top: 10px; margin-top: 6px; border-top: 1px solid rgba(255,255,255,.12); justify-content: center; }
+  .bs-navbar { position: relative; }
+  .bs-foot-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .bs-foot-col.brandcol { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) { .bs-foot-grid { grid-template-columns: 1fr; } }
+
+/* Fix link colors in the Bootstrap navbar/footer (beat body.portal a specificity) */
+body.bs .bs-brand { color: #fff; }
+body.bs .bs-nav a { color: rgba(255,255,255,.75); }
+body.bs .bs-nav a:hover { color: #fff; }
+body.bs .bs-nav a.active { color: #fff; }
+body.bs .bs-userbox .who { color: #cbd5e1; }
+body.bs .bs-userbox .bbtn.primary { color: #fff; }
+body.bs .bs-userbox .bbtn.outline { color: #fff; }
+body.bs .bs-foot-brand { color: #fff; }
+body.bs .bs-foot-col h5 { color: #e5e7eb; }
+body.bs .bs-foot-col a { color: #9ca3af; }
+body.bs .bs-foot-col a:hover { color: #60a5fa; }
+body.bs .bs-toggler { color: #fff; }

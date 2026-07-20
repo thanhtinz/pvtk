@@ -74,13 +74,26 @@ function renderUser() {
     document.getElementById('loginBtn').onclick = () => showLogin(false);
     document.getElementById('registerBtn').onclick = () => showLogin(true);
   }
+  // Bootstrap navbar userbox (logged-in pages)
+  const bbox = document.getElementById('bsUserbox');
+  if (bbox) {
+    if (T.token) {
+      bbox.innerHTML = `${T.role === 'ADMIN' ? '<a class="bbtn outline" href="/admin.html">Admin</a>' : ''}
+        <span class="who">${ICON.user} ${T.name}</span><a class="bbtn primary" id="bsLogout">Thoát</a>`;
+      document.getElementById('bsLogout').onclick = logout;
+    } else {
+      bbox.innerHTML = `<a class="bbtn outline" id="bsLogin">Đăng nhập</a><a class="bbtn primary" id="bsReg">Đăng ký</a>`;
+      document.getElementById('bsLogin').onclick = () => showLogin(false);
+      document.getElementById('bsReg').onclick = () => showLogin(true);
+    }
+  }
 }
 
 // ---- views ----
 const app = () => document.getElementById('app');
 function go(view) { location.hash = '#' + view; }
 function setActive(view) {
-  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
+  document.querySelectorAll('[data-view]').forEach(a => a.classList.toggle('active', a.dataset.view === view));
 }
 
 const views = {
@@ -423,13 +436,21 @@ async function showDownload() {
 }
 window.showDownload = showDownload;
 
-// Wire footer contact/social links from site config.
+// Wire footer contact/social links from site config (both footers).
 async function applyFooter() {
   const site = await getSite();
   const fb = document.getElementById('fbLink');
   if (fb) { fb.href = site.facebookUrl || '#'; fb.onclick = site.facebookUrl ? null : (e) => { e.preventDefault(); toast('Chưa cấu hình Facebook'); }; }
   const guide = document.getElementById('guideLink');
   if (guide) guide.onclick = () => { if (site.guideUrl) window.open(site.guideUrl, '_blank'); else go('news'); };
+  // Bootstrap footer
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('bsEmailT', site.supportEmail || '');
+  set('bsPhoneT', site.hotline || '');
+  const be = document.getElementById('bsEmail'); if (be) be.href = 'mailto:' + (site.supportEmail || '');
+  const bp = document.getElementById('bsPhone'); if (bp) bp.href = 'tel:' + (site.hotline || '').replace(/\s/g, '');
+  const bfb = document.getElementById('bsFb'); if (bfb) { bfb.href = site.facebookUrl || '#'; bfb.onclick = site.facebookUrl ? null : (e) => { e.preventDefault(); toast('Chưa cấu hình Facebook'); }; }
+  const bg = document.getElementById('bsGuide'); if (bg) bg.onclick = () => { if (site.guideUrl) window.open(site.guideUrl, '_blank'); else go('news'); };
 }
 
 function playTrailer() {
@@ -443,13 +464,18 @@ function playTrailer() {
 window.playTrailer = playTrailer;
 
 window.addEventListener('hashchange', router);
-// Mobile hamburger menu.
+// Mobile hamburger menus (wuxia header + bootstrap navbar).
 const headerMenu = document.getElementById('headerMenu');
 const hamburger = document.getElementById('hamburger');
+const bsCollapse = document.getElementById('bsCollapse');
 if (hamburger) hamburger.onclick = () => headerMenu.classList.toggle('open');
-document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => {
+const bsToggler = document.getElementById('bsToggler');
+if (bsToggler) bsToggler.onclick = () => bsCollapse.classList.toggle('open');
+// Nav links exist in both headers + footer; wire them all.
+document.querySelectorAll('[data-view]').forEach(a => a.addEventListener('click', () => {
   go(a.dataset.view);
-  if (headerMenu) headerMenu.classList.remove('open'); // close after picking on mobile
+  if (headerMenu) headerMenu.classList.remove('open');
+  if (bsCollapse) bsCollapse.classList.remove('open');
 }));
 window.go = go; window.closeModal = closeModal;
 renderUser();
