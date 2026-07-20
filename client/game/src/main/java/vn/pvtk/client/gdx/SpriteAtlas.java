@@ -28,8 +28,8 @@ public final class SpriteAtlas {
     /** Attempts to load {@code <base>.png} + {@code <base>.fr}; null on failure. */
     public static SpriteAtlas tryLoad(String base) {
         try {
-            var png = Gdx.files.internal(base + ".png");
-            var fr = Gdx.files.internal(base + ".fr");
+            var png = Assets.resolve(base + ".png");
+            var fr = Assets.resolve(base + ".fr");
             if (!png.exists() || !fr.exists()) {
                 return null;
             }

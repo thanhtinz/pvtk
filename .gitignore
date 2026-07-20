@@ -38,3 +38,4 @@ out/
 
 # Large game assets imported from the original client (kept out of VCS)
 assets-imported/
+assets/font/cjk.ttf

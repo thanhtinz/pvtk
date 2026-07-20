@@ -42,6 +42,19 @@ Không cần cài thêm gì ngoài JDK.
 # Chạy: client/desktop/build/install/desktop/bin/desktop
 ```
 
+### Font trong game (tiếng Việt & tên vật phẩm tiếng Trung)
+
+Client vẽ chữ bằng font TrueType trong `assets/font/`:
+
+- `assets/font/game.ttf` — có sẵn, hiển thị **tiếng Việt** (dấu đầy đủ) và Latin.
+- `assets/font/cjk.ttf` — **tùy chọn**. Tên vật phẩm/quái trong dữ liệu gốc là
+  **tiếng Trung**; muốn hiển thị đúng (không bị ô vuông □), hãy chép một font có
+  glyph tiếng Trung vào đây, ví dụ WenQuanYi Zen Hei:
+  ```bash
+  cp /đường-dẫn/wqy-zenhei.ttc assets/font/cjk.ttf
+  ```
+  Nếu không có `cjk.ttf`, game vẫn chạy bình thường, chỉ tên tiếng Trung hiện ô vuông.
+
 ---
 
 ## 2. Client Java (console, không cần màn hình)

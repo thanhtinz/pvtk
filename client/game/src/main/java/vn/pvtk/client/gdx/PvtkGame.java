@@ -55,7 +55,7 @@ public final class PvtkGame extends ApplicationAdapter {
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
-        font = new BitmapFont();
+        font = GameFont.load(16);
         // Real game sprites decoded from the original common/1.{png,fr} sheet.
         atlas = SpriteAtlas.tryLoad("common/1");
 
@@ -182,7 +182,7 @@ public final class PvtkGame extends ApplicationAdapter {
             mapTexture = null;
         }
         mapTextureId = mapId;
-        var file = Gdx.files.internal("map/" + mapId + ".png");
+        var file = Assets.resolve("map/" + mapId + ".png");
         if (file.exists()) {
             try {
                 mapTexture = new Texture(file);
