@@ -21,7 +21,9 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2600);
 }
 function iconUrl(iconId) { return `/api/items/${iconId}/icon.svg`; }
-function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
+// Use a <template> so table fragments (<tr>/<td>) parse correctly — a <div>
+// silently drops them, which collapses table rows into one line of text.
+function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
 function modal(html) {
   const root = document.getElementById('modal-root');
   const bg = el(`<div class="modal-bg"><div class="modal">${html}</div></div>`);
@@ -77,91 +79,67 @@ function setActive(view) {
 const views = {
   async home() {
     app().innerHTML = `
-      <section class="hero">
-        <div class="eyebrow">Kiếm Hiệp · MMORPG</div>
-        <h1>PHONG VÂN ONLINE</h1>
-        <p class="sub">Bản dựng lại đa nền tảng (PC · Android · iOS · Java) của tựa game kiếm hiệp
-          huyền thoại. Luyện công, lập bang, chinh chiến — trở thành đệ nhất cao thủ thiên hạ!</p>
-        <div class="cta">
-          <button class="btn big" onclick="go('topup')">💳 Nạp thẻ</button>
-          <button class="btn big sec" onclick="go('shop')">🛒 Vào Webshop</button>
+      <section class="hero-banner">
+        <div class="hero-dragon">🐉</div>
+        <div class="hero-logo">PHONG VÂN<small>TRUYỀN KỲ</small></div>
+        <div class="hero-sub">⚔ Huyền Thoại Turn-Base · 10 Năm Kinh Điển</div>
+      </section>
+
+      <div class="action-row">
+        <a class="act-btn jade" onclick="showDownload()"><span class="ai">⬇️</span><div>TẢI<br>GAME</div></a>
+        <a class="act-btn nap" onclick="go('topup')"><span class="ai">💰</span><div>NẠP THẺ</div></a>
+        <a class="act-btn jade" onclick="go('giftcode')"><span class="ai">🎁</span><div>NHẬN<br>GIFTCODE</div></a>
+      </div>
+
+      <section class="portal-sec">
+        <h2 class="cal">Tin Tức</h2>
+        <div class="news-tabs" id="newsTabs">
+          <a data-f="all" class="active">TIN TỨC</a>
+          <a data-f="event">SỰ KIỆN</a>
+          <a data-f="news">THÔNG BÁO</a>
         </div>
-        <div class="server-bar" id="serverBar">
-          <div class="stat"><div class="k">Máy chủ</div><div class="v on" id="srvState">● Hoạt động</div></div>
-          <div class="stat"><div class="k">Đang online</div><div class="v" id="srvOnline">—</div></div>
-          <div class="stat"><div class="k">Cao thủ</div><div class="v" id="srvTop">—</div></div>
-          <div class="stat"><div class="k">Nền tảng</div><div class="v" style="font-size:16px">PC · Mobile · Java</div></div>
+        <div class="news-list" id="newsList"><div class="nrow"><span class="nt muted">Đang tải…</span></div></div>
+        <div class="contact-row">
+          <a href="mailto:hotro@phongvan.vn">✉️ hotro@phongvan.vn</a>
+          <a href="tel:19000000">📞 1900 0000</a>
         </div>
       </section>
 
-      <div class="quick">
-        <a onclick="go('topup')"><span class="qi">💳</span><span class="ql">Nạp thẻ</span></a>
-        <a onclick="go('giftcode')"><span class="qi">🎁</span><span class="ql">Giftcode</span></a>
-        <a onclick="go('shop')"><span class="qi">🛒</span><span class="ql">Webshop</span></a>
-        <a onclick="go('leaderboard')"><span class="qi">🏆</span><span class="ql">Xếp hạng</span></a>
-        <a onclick="go('news')"><span class="qi">📰</span><span class="ql">Tin tức</span></a>
-        <a onclick="go('profile')"><span class="qi">👤</span><span class="ql">Cá nhân</span></a>
-      </div>
+      <section class="portal-sec">
+        <h2 class="cal">Đặc Sắc</h2>
+        <div class="feat-grid" id="featGrid"></div>
+      </section>`;
 
-      <div class="section">
-        <div class="section-title"><span>⚔ Tính năng nổi bật</span></div>
-        <div class="grid cards" id="homeCards"></div>
-      </div>
-
-      <div class="section">
-        <div class="two-col grid">
-          <div>
-            <div class="section-title"><span>📰 Tin tức & Sự kiện</span></div>
-            <div class="card" id="homeNews"><div class="muted" style="padding:8px">Đang tải…</div></div>
-            <div class="row" style="justify-content:center;margin-top:14px">
-              <button class="btn sec small" onclick="go('news')">Xem tất cả tin tức →</button>
-            </div>
-          </div>
-          <div>
-            <div class="section-title"><span>🏆 Cao thủ</span></div>
-            <div class="card" id="homeTop"><div class="muted" style="padding:8px">Đang tải…</div></div>
-          </div>
-        </div>
-      </div>`;
-
-    const c = document.getElementById('homeCards');
-    [['⚔️', 'Combat lượt & real-time', 'Đánh quái, PK, đấu trường, chiến tranh bang hội.'],
-     ['🛡️', 'Trang bị & kỹ năng', 'Dữ liệu vật phẩm, kỹ năng, rơi đồ gốc từ game.'],
+    // Features
+    const fg = document.getElementById('featGrid');
+    [['⚔️', 'Combat Turn-Base', 'Đánh quái, PK, đấu trường, chiến tranh bang hội theo lượt.'],
+     ['🛡️', '9 Class Tranh Hùng', 'Trang bị, kỹ năng, rơi đồ theo dữ liệu gốc của game.'],
      ['🤝', 'Xã hội phong phú', 'Bang hội, tổ đội, bạn bè, chợ giao dịch, hòm thư.'],
-     ['🐾', 'Pet & hộ tống', 'Thú cưng đi theo, nhiệm vụ tiêu xa, săn boss.']]
-      .forEach(([i, h, b]) => c.appendChild(el(
-        `<div class="card feature"><div class="fi">${i}</div><h3>${h}</h3><div class="muted">${b}</div></div>`)));
+     ['🐾', 'Pet & Hộ tống', 'Thú cưng đi theo, nhiệm vụ tiêu xa, săn boss.'],
+     ['📱', 'Đa nền tảng', 'Chơi trên PC · Android · iOS · Java, chung một máy chủ.'],
+     ['🏆', 'Đua TOP nhận thưởng', 'Bảng xếp hạng cao thủ, sự kiện nạp & tích lũy.']]
+      .forEach(([i, h, b]) => fg.appendChild(el(
+        `<div class="feat"><div class="fi">${i}</div><h3>${h}</h3><p>${b}</p></div>`)));
 
-    // Live server stats + previews (best-effort; ignore failures).
-    try {
-      const s = await api('/status');
-      document.getElementById('srvOnline').textContent = s.online;
-      document.getElementById('srvState').textContent = s.up ? '● Hoạt động' : '● Bảo trì';
-    } catch (e) { document.getElementById('srvState').textContent = '● Offline'; }
-    try {
-      const { top } = await api('/leaderboard');
-      document.getElementById('srvTop').textContent = top.length ? esc(top[0].username) : '—';
-      const ht = document.getElementById('homeTop');
-      ht.innerHTML = '';
-      if (!top.length) ht.innerHTML = '<div class="muted" style="padding:8px">Chưa có dữ liệu.</div>';
-      top.slice(0, 8).forEach((r, i) => ht.appendChild(el(
-        `<div class="news-item" style="padding:9px 12px">
-           <div class="badge" style="width:34px;height:34px;font-size:15px;color:var(--gold)">${['🥇','🥈','🥉'][i] || (i + 1)}</div>
-           <div style="flex:1"><div class="nt">${esc(r.username)}</div>
-             <div class="nd">Cấp ${r.level} · ${r.gold} vàng</div></div></div>`)));
-    } catch (e) { /* ignore */ }
-    try {
-      const { news } = await api('/news');
-      const hn = document.getElementById('homeNews');
-      hn.innerHTML = '';
-      if (!news.length) hn.innerHTML = '<div class="muted" style="padding:8px">Chưa có tin tức.</div>';
-      news.slice(0, 5).forEach(n => hn.appendChild(el(
-        `<div class="news-item">
-           <div class="badge ${n.type === 'event' ? 'event' : ''}">${n.type === 'event' ? '🎉' : '📰'}</div>
-           <div style="flex:1"><div class="nt">${esc(n.title)}</div>
-             <div class="nd">${new Date(n.date).toLocaleString('vi')}</div>
-             <div class="nb">${esc((n.body || '').slice(0, 120))}${(n.body || '').length > 120 ? '…' : ''}</div></div></div>`)));
-    } catch (e) { /* ignore */ }
+    // News with client-side tab filtering.
+    let allNews = [];
+    try { allNews = (await api('/news')).news || []; } catch (e) { /* ignore */ }
+    const listEl = document.getElementById('newsList');
+    const renderNews = (filter) => {
+      const rows = allNews.filter(n => filter === 'all' || n.type === filter);
+      listEl.innerHTML = '';
+      if (!rows.length) { listEl.innerHTML = '<div class="nrow"><span class="nt muted">Chưa có tin.</span></div>'; return; }
+      rows.forEach((n, i) => listEl.appendChild(el(
+        `<div class="nrow">
+           ${i === 0 ? '<span class="new">New!</span>' : ''}
+           <span class="nt">[${n.type === 'event' ? 'SỰ KIỆN' : 'THÔNG BÁO'}] ${esc(n.title)}</span>
+           <span class="nd">${new Date(n.date).toLocaleDateString('vi')}</span></div>`)));
+    };
+    document.querySelectorAll('#newsTabs a').forEach(a => a.onclick = () => {
+      document.querySelectorAll('#newsTabs a').forEach(x => x.classList.toggle('active', x === a));
+      renderNews(a.dataset.f);
+    });
+    renderNews('all');
   },
 
   async news() {
@@ -345,8 +323,25 @@ function router() {
   setActive(view);
   (views[view] || views.home)();
 }
+function showDownload() {
+  modal(`
+    <h3>⬇ Tải Phong Vân Online</h3>
+    <p class="muted">Chọn nền tảng để tải/cài client. Tất cả dùng chung một máy chủ.</p>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">💻 PC (Windows/macOS/Linux)</a>
+      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">🤖 Android (APK)</a>
+      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">🍎 iOS</a>
+      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">☕ Java Client</a>
+    </div>
+    <p class="muted" style="font-size:13px;margin-top:12px">Hiện tại tải/ build client từ mã nguồn theo hướng dẫn
+      <b>docs/BUILD_CLIENT.md</b>. Bản cài đặt sẵn sẽ được cập nhật sau.</p>
+    <div class="row" style="margin-top:14px"><button class="btn sec" onclick="closeModal()">Đóng</button></div>`);
+}
+window.showDownload = showDownload;
+
 window.addEventListener('hashchange', router);
 document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => go(a.dataset.view)));
+['downloadBtn2'].forEach(id => { const b = document.getElementById(id); if (b) b.onclick = showDownload; });
 window.go = go; window.closeModal = closeModal;
 renderUser();
 router();

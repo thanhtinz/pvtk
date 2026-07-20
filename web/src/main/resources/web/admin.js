@@ -10,7 +10,8 @@ async function api(path, method = 'GET', body) {
   return data;
 }
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2600); }
-function el(h) { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstChild; }
+// <template> so table fragments (<tr>/<td>) parse correctly (a <div> drops them).
+function el(h) { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; }
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 function iconUrl(id) { return `/api/items/${id}/icon.svg`; }
 function modal(h) {

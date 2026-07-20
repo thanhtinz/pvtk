@@ -6,8 +6,9 @@
   <title>Phong Vân Online — Kiếm Hiệp Huyền Thoại</title>
   <link rel="stylesheet" href="/style.css"/>
 </head>
-<body>
+<body class="portal">
   <header class="site">
+    <span class="badge18">18+</span>
     <div class="logo">⚔ PHONG VÂN</div>
     <nav id="nav">
       <a data-view="home" class="active">Trang chủ</a>
@@ -19,6 +20,7 @@
       <a data-view="profile" class="auth-only hidden">Cá nhân</a>
     </nav>
     <div class="spacer"></div>
+    <a class="btn-tai" id="downloadBtn2">⬇ TẢI GAME</a>
     <div class="userbox" id="userbox">
       <a class="btn small" id="loginBtn">Đăng nhập</a>
       <a class="btn small sec" id="registerBtn">Đăng ký</a>
@@ -28,8 +30,15 @@
   <main id="app"></main>
 
   <footer class="site">
+    <div class="foot-icons">
+      <a onclick="go('giftcode')"><span class="fic">🎁</span>GIFTCODE</a>
+      <a onclick="go('topup')"><span class="fic">💳</span>NẠP THẺ</a>
+      <a onclick="showDownload()"><span class="fic">⬇️</span>TẢI GAME</a>
+      <a onclick="go('news')"><span class="fic">📖</span>HƯỚNG DẪN</a>
+      <a href="#" onclick="return false"><span class="fic">📘</span>FACEBOOK</a>
+    </div>
     <div class="logo">⚔ PHONG VÂN ONLINE</div>
-    <div>Bản dựng lại đa nền tảng (PC · Android · iOS · Java) của tựa game kiếm hiệp huyền thoại.</div>
+    <div class="foot-links">Điều khoản sử dụng · Cài đặt và gỡ bỏ · Bảo mật · Thanh toán</div>
     <div style="margin-top:8px">© 2024 Phong Vân Online · Server cộng đồng · Chơi miễn phí</div>
   </footer>
 
