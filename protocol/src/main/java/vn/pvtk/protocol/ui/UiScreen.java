@@ -46,6 +46,12 @@ public final class UiScreen {
         return t == 52;                       // e
     }
 
+    /** A 9-slice (or stretched) panel background: a {@code common/} sheet + frame indices. */
+    public record Background(int sheetId, int[] frames) { }
+
+    /** A single image/icon: a {@code common/} sheet id + frame index. */
+    public record Image(int sheetId, int frame) { }
+
     /** One widget in the layout tree. */
     public static final class Widget {
         public final int type;
@@ -54,7 +60,8 @@ public final class UiScreen {
         public int w;
         public int h;
         public String text = "";
-        public final List<Integer> imageRefs = new ArrayList<>(); // sprite/image ids drawn by this widget
+        public final List<Background> backgrounds = new ArrayList<>(); // panel/frame art
+        public final List<Image> images = new ArrayList<>();           // icons / button glyphs
         public final List<Widget> children = new ArrayList<>();
 
         Widget(int type) {
@@ -139,22 +146,37 @@ public final class UiScreen {
                 w.h = in.readInt();
             }
             case 5 -> { w.x = in.readInt(); w.y = in.readInt(); } // set position
-            case 3, 42, 44, 43, 36, 37, 38, 39 -> addImages(w, intArray(in));
+            case 3, 42, 44, 43, 36, 37, 38, 39 -> intArray(in);
             case 4 -> in.readByte();
             case 6, 7, 8, 9 -> { in.readInt(); in.readInt(); }
             case 11, 12 -> {
-                if (isBi(type)) { addImages(w, intArray(in)); in.readInt(); in.readInt(); in.readInt(); }
-                else if (isBh(type)) { w.text = in.readUTF(); in.readInt(); in.readInt(); in.readInt(); }
+                if (isBi(type)) {
+                    int[] frames = intArray(in);
+                    int sheet = in.readInt();
+                    in.readInt(); in.readInt();
+                    w.backgrounds.add(new Background(sheet, frames));
+                } else if (isBh(type)) {
+                    w.text = in.readUTF(); in.readInt(); in.readInt(); in.readInt();
+                }
             }
             case 13, 14 -> {
-                if (isE(type)) { addImages(w, intArray(in)); in.readInt(); in.readShort(); }
-                else if (isBh(type)) { addImages(w, intArray(in)); in.readInt(); in.readShort(); in.readShort(); }
+                if (isE(type)) {
+                    int[] frames = intArray(in);
+                    int sheet = in.readInt();
+                    in.readShort();
+                    w.backgrounds.add(new Background(sheet, frames));
+                } else if (isBh(type)) {
+                    int[] frames = intArray(in);
+                    int sheet = in.readInt();
+                    in.readShort(); in.readShort();
+                    w.backgrounds.add(new Background(sheet, frames));
+                }
             }
-            case 15, 45, 16 -> { w.imageRefs.add(in.readInt()); in.readInt(); in.readInt(); in.readInt(); }
-            case 31 -> { w.imageRefs.add(in.readInt()); in.readInt(); in.readInt(); in.readInt(); in.readInt(); }
-            case 21 -> { w.imageRefs.add(in.readInt()); in.readInt(); in.readInt(); }
+            case 15, 45, 16 -> { int s = in.readInt(); int f = in.readInt(); in.readInt(); in.readInt(); w.images.add(new Image(s, f)); }
+            case 31 -> { int s = in.readInt(); int f = in.readInt(); in.readInt(); in.readInt(); in.readInt(); w.images.add(new Image(s, f)); }
+            case 21 -> { int s = in.readInt(); int f = in.readInt(); in.readInt(); w.images.add(new Image(s, f)); }
             case 17 -> in.readByte();
-            case 40 -> { w.imageRefs.add(in.readInt()); in.readInt(); in.readInt(); }
+            case 40 -> { int s = in.readInt(); int f = in.readInt(); in.readInt(); w.images.add(new Image(s, f)); }
             case 41 -> w.text = in.readUTF();
             case 18 -> { intArray(in); in.readByte(); }
             case 19 -> { // menu
@@ -177,14 +199,6 @@ public final class UiScreen {
             case 29 -> { in.readByte(); for (int i = 0; i < 4; i++) in.readInt(); }
             case 33 -> in.readByte();
             default -> throw new IOException("unknown .ui attribute type " + t + " on widget " + w.typeName());
-        }
-    }
-
-    private static void addImages(Widget w, int[] ids) {
-        for (int id : ids) {
-            if (id != 0) {
-                w.imageRefs.add(id);
-            }
         }
     }
 }
