@@ -132,11 +132,10 @@ public final class UiStage {
     private void nineSlice(SpriteBatch batch, UiScreen.Background bg, float x, float y, float w, float h) {
         int sheetId = bg.sheetId();
         int[] frames = bg.frames();
-        if (sheetId <= 0) {
-            sheetId = DEFAULT_SKIN;
-            frames = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8};
-        }
-        if (sheet(sheetId) == null) {
+        // az ≤ 0 means "inherit the default skin"; drawing a blanket panel for
+        // every such widget over-draws badly, so skip until the real inherited
+        // skin is resolved. Only explicit sheets are painted.
+        if (sheetId <= 0 || sheet(sheetId) == null) {
             return;
         }
         if (frames.length >= 9) {

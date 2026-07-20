@@ -150,12 +150,10 @@ public final class UiLayoutExporter {
     private static void nineSlice(Graphics2D g, UiScreen.Background bg, int x, int y, int w, int h) {
         int sheetId = bg.sheetId();
         int[] frames = bg.frames();
-        if (sheetId <= 0) { // inherited/default skin
-            sheetId = DEFAULT_SKIN;
-            frames = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8};
-        }
+        // az ≤ 0 = inherit default skin; painting a blanket panel per widget
+        // over-draws, so only explicit sheets are rendered for now.
         Sheet s = sheet(sheetId);
-        if (s == null) {
+        if (sheetId <= 0 || s == null) {
             return;
         }
         if (frames.length >= 9) {
