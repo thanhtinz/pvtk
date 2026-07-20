@@ -210,28 +210,39 @@ const views = {
   },
 
   async leaderboard() {
-    app().innerHTML = `<div class="container"><h2>Bảng xếp hạng</h2><div class="card"><table id="t">
-      <tr><th>#</th><th>Nhân vật</th><th>Cấp</th><th>Vàng</th></tr></table></div></div>`;
+    app().innerHTML = `<div class="bs-page">
+      <h1 class="page-title">Bảng xếp hạng</h1>
+      <p class="lead">Top cao thủ theo cấp độ và vàng.</p>
+      <div class="card"><div class="card-body" style="padding:0">
+        <table class="table table-striped table-hover" style="margin:0">
+          <thead><tr><th style="width:70px">Hạng</th><th>Nhân vật</th><th>Cấp</th><th>Vàng</th></tr></thead>
+          <tbody id="t"></tbody></table></div></div></div>`;
     const { top } = await api('/leaderboard');
     const t = document.getElementById('t');
-    top.forEach(r => t.appendChild(el(`<tr><td>${r.rank}</td><td>${esc(r.username)}</td>
-      <td>${r.level}</td><td>${r.gold}</td></tr>`)));
-    if (!top.length) t.appendChild(el('<tr><td colspan="4" class="muted">Chưa có dữ liệu.</td></tr>'));
+    top.forEach(r => t.appendChild(el(`<tr>
+      <td><span class="rank-badge ${r.rank <= 3 ? 'g' + r.rank : ''}">${r.rank}</span></td>
+      <td class="fw-bold">${esc(r.username)}</td>
+      <td><span class="badge rounded-pill text-bg-primary">Lv ${r.level}</span></td>
+      <td>${r.gold.toLocaleString('vi')}</td></tr>`)));
+    if (!top.length) t.appendChild(el('<tr><td colspan="4" class="text-muted">Chưa có dữ liệu.</td></tr>'));
   },
 
   async shop() {
-    app().innerHTML = `<div class="container"><h2>Webshop</h2>
-      <p class="muted">Mua bằng số dư (nạp thẻ). Vật phẩm gửi vào hòm thư trong game.</p>
-      <div class="grid cards" id="g"></div></div>`;
+    app().innerHTML = `<div class="bs-page">
+      <h1 class="page-title">Webshop</h1>
+      <p class="lead">Mua bằng số dư Xu (nạp thẻ). Vật phẩm được gửi vào hòm thư trong game.</p>
+      <div class="row" id="g"></div></div>`;
     const { products } = await api('/shop');
     const g = document.getElementById('g');
-    if (!products.length) g.innerHTML = '<p class="muted">Cửa hàng trống.</p>';
+    if (!products.length) g.innerHTML = '<div class="col-12"><div class="card"><div class="card-body text-muted">Cửa hàng trống.</div></div></div>';
     products.forEach(p => {
-      const c = el(`<div class="card row" style="justify-content:space-between">
-        <div class="row"><img class="icon" src="${iconUrl(p.icon)}"/>
-          <div><b>${esc(p.name)}</b><div class="muted">${esc(p.itemName)} x${p.count}</div></div></div>
-        <div style="text-align:right"><div class="tag">${p.price} ${ICON.gem}</div><br/>
-          <button class="btn small" style="margin-top:6px">Mua</button></div>`);
+      const c = el(`<div class="col-4"><div class="card"><div class="card-body">
+        <div class="flex"><img class="icon-thumb" src="${iconUrl(p.icon)}"/>
+          <div><div class="card-title" style="margin:0">${esc(p.name)}</div>
+            <div class="text-muted small">${esc(p.itemName)} × ${p.count}</div></div></div>
+        <div class="price" style="margin:14px 0 10px">${p.price} Xu</div>
+        <button class="btn btn-primary btn-sm" style="width:100%">Mua ngay</button>
+      </div></div></div>`);
       c.querySelector('button').onclick = async () => {
         if (!T.token) return showLogin(false);
         try { const r = await api('/shop/buy', 'POST', { productId: p.id }); toast(r.message); }
@@ -243,24 +254,26 @@ const views = {
 
   async topup() {
     if (!T.token) return showLogin(false);
-    app().innerHTML = `<div class="container"><h2>Nạp Xu qua SePay (chuyển khoản ngân hàng)</h2>
-      <p class="muted">Chọn gói → quét QR / chuyển khoản đúng nội dung → hệ thống tự cộng Xu.
-        Vào game gõ lệnh <b>convert</b> (hoặc nút Đổi) để đổi <b>Xu → Tiền nạp</b> trong game.</p>
-      <div class="grid cards" id="packs"></div></div>`;
+    app().innerHTML = `<div class="bs-page">
+      <h1 class="page-title">Nạp Xu qua SePay</h1>
+      <p class="lead">Chọn gói → quét QR / chuyển khoản đúng nội dung → hệ thống tự cộng Xu.
+        Trong game gõ lệnh <b class="text-primary">convert</b> để đổi Xu → Tiền nạp.</p>
+      <div class="row" id="packs"></div></div>`;
     const { packages, sepay } = await api('/packages');
     const g = document.getElementById('packs');
     if (!sepay.enabled) {
-      g.innerHTML = '<div class="card">Cổng nạp SePay chưa được bật. Vui lòng liên hệ quản trị viên.</div>';
+      g.innerHTML = '<div class="col-12"><div class="card"><div class="card-body text-muted">Cổng nạp SePay chưa được bật. Vui lòng liên hệ quản trị viên.</div></div></div>';
       return;
     }
-    if (!packages.length) g.innerHTML = '<div class="card muted">Chưa có gói nạp.</div>';
+    if (!packages.length) g.innerHTML = '<div class="col-12"><div class="card"><div class="card-body text-muted">Chưa có gói nạp.</div></div></div>';
     packages.forEach(p => {
-      const c = el(`<div class="card">
-        <h3>${esc(p.name)}</h3>
-        <div class="muted">${p.priceVnd.toLocaleString('vi')} đ</div>
-        <div style="font-size:22px;color:var(--gold);font-weight:800">${p.xu + p.bonus} Xu</div>
-        ${p.bonus ? `<div class="tag on">+${p.bonus} thưởng</div>` : ''}
-        <button class="btn small" style="margin-top:10px">Nạp gói này</button></div>`);
+      const c = el(`<div class="col-3"><div class="card"><div class="card-body" style="text-align:center">
+        <div class="text-muted small">${esc(p.name)}</div>
+        <div class="price" style="margin:8px 0 2px">${p.xu + p.bonus} Xu</div>
+        <div class="text-muted small">${p.priceVnd.toLocaleString('vi')} đ</div>
+        ${p.bonus ? `<div style="margin:8px 0"><span class="badge rounded-pill text-bg-success">+${p.bonus} thưởng</span></div>` : '<div style="height:8px"></div>'}
+        <button class="btn btn-primary btn-sm" style="width:100%">Nạp gói này</button>
+      </div></div></div>`);
       c.querySelector('button').onclick = () => startOrder(p.id);
       g.appendChild(c);
     });
@@ -268,11 +281,14 @@ const views = {
 
   giftcode() {
     if (!T.token) return showLogin(false);
-    app().innerHTML = `<div class="container"><h2>Nhập Giftcode</h2>
-      <div class="card" style="max-width:460px">
-        <label>Mã quà tặng</label><input id="code" placeholder="VD: TANTHU2024"/>
-        <button class="btn" id="go" style="margin-top:14px">Nhận quà</button>
-      </div></div>`;
+    app().innerHTML = `<div class="bs-page">
+      <h1 class="page-title">Nhập Giftcode</h1>
+      <p class="lead">Nhập mã quà tặng để nhận thưởng vào tài khoản.</p>
+      <div class="row"><div class="col-6"><div class="card"><div class="card-body">
+        <label class="form-label">Mã quà tặng</label>
+        <input id="code" class="form-control" placeholder="VD: TANTHU2024"/>
+        <button class="btn btn-primary" id="go" style="margin-top:16px">Nhận quà</button>
+      </div></div></div></div></div>`;
     document.getElementById('go').onclick = async () => {
       try { const r = await api('/giftcode', 'POST', { code: document.getElementById('code').value });
         toast(r.message); } catch (e) { toast(e.message); }
@@ -282,39 +298,45 @@ const views = {
   async profile() {
     if (!T.token) return showLogin(false);
     const me = await api('/me');
-    app().innerHTML = `<div class="container"><h2>Trang cá nhân</h2>
-      <div class="grid cards">
-        <div class="card"><h3>Thông tin</h3>
-          <p>Tài khoản: <b>${esc(me.username)}</b> ${me.role === 'ADMIN' ? '<span class="tag admin">ADMIN</span>' : ''}</p>
-          <p>Số dư Xu (web): <b>${me.balance}</b> ${ICON.gem}</p>
-          <p>Tiền nạp trong game: <b>${me.coin ?? 0}</b></p>
-          <p>Vàng trong game: <b>${me.gold}</b></p>
-          <p class="muted" style="font-size:13px">Đổi Xu → Tiền nạp: đăng nhập game và gõ lệnh <b>convert &lt;số xu&gt;</b>.</p>
-          <p>Cấp độ: <b>${me.level}</b></p>
-          <p>Trạng thái: ${me.online ? '<span class="tag on">Đang online</span>' : '<span class="tag off">Offline</span>'}</p>
-        </div>
-        <div class="card"><h3>Đổi mật khẩu</h3>
-          <label>Mật khẩu cũ</label><input id="op" type="password"/>
-          <label>Mật khẩu mới</label><input id="np" type="password"/>
-          <button class="btn" id="cp" style="margin-top:14px">Đổi mật khẩu</button>
-        </div>
+    const badge = (t, c) => `<span class="badge rounded-pill ${c}">${t}</span>`;
+    app().innerHTML = `<div class="bs-page">
+      <h1 class="page-title">Trang cá nhân</h1>
+      <div class="row">
+        <div class="col-6"><div class="card"><div class="card-body">
+          <h4>Thông tin tài khoản</h4>
+          <div class="info-row"><span class="k">Tài khoản</span><span class="v">${esc(me.username)} ${me.role === 'ADMIN' ? badge('ADMIN', 'text-bg-danger') : ''}</span></div>
+          <div class="info-row"><span class="k">Số dư Xu (web)</span><span class="v text-primary">${me.balance} Xu</span></div>
+          <div class="info-row"><span class="k">Tiền nạp trong game</span><span class="v">${me.coin ?? 0}</span></div>
+          <div class="info-row"><span class="k">Vàng trong game</span><span class="v">${me.gold}</span></div>
+          <div class="info-row"><span class="k">Cấp độ</span><span class="v">${me.level}</span></div>
+          <div class="info-row"><span class="k">Trạng thái</span><span class="v">${me.online ? badge('Đang online', 'text-bg-success') : badge('Offline', 'text-bg-secondary')}</span></div>
+          <p class="text-muted small" style="margin-top:12px">Đổi Xu → Tiền nạp: đăng nhập game và gõ lệnh <b>convert &lt;số xu&gt;</b>.</p>
+        </div></div></div>
+        <div class="col-6"><div class="card"><div class="card-body">
+          <h4>Đổi mật khẩu</h4>
+          <label class="form-label">Mật khẩu cũ</label><input id="op" type="password" class="form-control"/>
+          <label class="form-label" style="margin-top:12px">Mật khẩu mới</label><input id="np" type="password" class="form-control"/>
+          <button class="btn btn-primary" id="cp" style="margin-top:16px">Đổi mật khẩu</button>
+        </div></div></div>
+        <div class="col-12"><div class="card"><div class="card-body">
+          <h4>Lịch sử giao dịch</h4>
+          <table class="table table-striped table-hover">
+            <thead><tr><th>Thời gian</th><th>Loại</th><th>Chi tiết</th><th>Số lượng</th></tr></thead>
+            <tbody id="txt"></tbody></table>
+        </div></div></div>
       </div></div>`;
     document.getElementById('cp').onclick = async () => {
       try { await api('/auth/change-password', 'POST',
         { oldPassword: document.getElementById('op').value, newPassword: document.getElementById('np').value });
         toast('Đổi mật khẩu thành công!'); } catch (e) { toast(e.message); }
     };
-    // Transaction history
     const { transactions } = await api('/me/transactions');
-    const tx = el(`<div class="card" style="grid-column:1/-1"><h3>Lịch sử giao dịch</h3>
-      <table id="txt"><tr><th>Thời gian</th><th>Loại</th><th>Chi tiết</th><th>Số lượng</th></tr></table></div>`);
-    app().querySelector('.cards').appendChild(tx);
-    const txt = tx.querySelector('#txt');
-    if (!transactions.length) txt.appendChild(el('<tr><td colspan="4" class="muted">Chưa có giao dịch.</td></tr>'));
+    const txt = document.getElementById('txt');
+    if (!transactions.length) txt.appendChild(el('<tr><td colspan="4" class="text-muted">Chưa có giao dịch.</td></tr>'));
     transactions.forEach(t => txt.appendChild(el(`<tr>
-      <td class="muted">${new Date(t.time).toLocaleString('vi')}</td>
-      <td><span class="tag">${esc(t.type)}</span></td><td>${esc(t.detail)}</td>
-      <td style="color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">${t.amount > 0 ? '+' : ''}${t.amount} ${esc(t.currency)}</td></tr>`)));
+      <td class="text-muted small">${new Date(t.time).toLocaleString('vi')}</td>
+      <td><span class="badge rounded-pill text-bg-secondary">${esc(t.type)}</span></td><td>${esc(t.detail)}</td>
+      <td style="color:${t.amount < 0 ? '#dc3545' : '#198754'};font-weight:600">${t.amount > 0 ? '+' : ''}${t.amount} ${esc(t.currency)}</td></tr>`)));
   },
 };
 
@@ -376,6 +398,8 @@ function router() {
   stopPoll();
   const view = (location.hash || '#home').slice(1);
   setActive(view);
+  // Logged-in content pages use the Bootstrap-5 style; the landing keeps its own.
+  document.body.classList.toggle('bs', view !== 'home' && view !== 'news');
   (views[view] || views.home)();
 }
 async function showDownload() {

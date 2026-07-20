@@ -510,3 +510,68 @@ body.portal header.site .header-menu .userbox { margin-left: auto; }
   .hero-banner-img { border-radius: 0; border-left: 0; border-right: 0; border-top: 0; }
   .action-row.imgs { margin-top: -20px; }
 }
+
+/* =====================================================================
+   Logged-in user pages — Bootstrap 5 style (scoped to .bs-page)
+   Kept separate from the wuxia landing; distinct clean/light look.
+   ===================================================================== */
+body.bs { background: #eef1f5; }
+.bs-page {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #212529; max-width: 1140px; margin: 0 auto; padding: 32px 16px 72px;
+}
+.bs-page .page-title { font-family: inherit; font-weight: 600; font-size: 1.75rem; color: #212529; margin: 0 0 .35rem; }
+.bs-page .lead { color: #6c757d; font-size: 1.02rem; margin: 0 0 1.5rem; }
+.bs-page h4 { font-family: inherit; font-weight: 600; color: #212529; margin: .25rem 0 1rem; font-size: 1.15rem; }
+.bs-page .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; align-items: start; }
+.bs-page [class*="col-"] { min-width: 0; }
+.bs-page .col-12 { grid-column: span 12; }
+.bs-page .col-6 { grid-column: span 6; }
+.bs-page .col-4 { grid-column: span 4; }
+.bs-page .col-3 { grid-column: span 3; }
+@media (max-width: 768px) { .bs-page .col-6, .bs-page .col-4, .bs-page .col-3 { grid-column: span 12; } }
+.bs-page .card { background: #fff; border: 1px solid #dee2e6; border-radius: .5rem; box-shadow: 0 .125rem .375rem rgba(0,0,0,.06); color: #212529; height: 100%; }
+.bs-page .card:hover { border-color: #dee2e6; }
+.bs-page .card-body { padding: 1.25rem; }
+.bs-page .card-title { font-family: inherit; font-size: 1.05rem; font-weight: 600; color: #212529; margin: 0 0 .6rem; }
+.bs-page .text-muted { color: #6c757d !important; }
+.bs-page .small { font-size: .85rem; }
+.bs-page .fw-bold { font-weight: 700; }
+.bs-page .flex { display: flex; align-items: center; gap: 12px; }
+.bs-page .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; font-family: inherit; font-weight: 500; font-size: .95rem; line-height: 1.5; padding: .5rem 1rem; border-radius: .375rem; border: 1px solid transparent; cursor: pointer; background: none; color: #212529; transition: .15s; box-shadow: none; letter-spacing: 0; }
+.bs-page .btn:hover { transform: none; }
+.bs-page .btn-sm { padding: .32rem .7rem; font-size: .85rem; }
+.bs-page .btn-lg { padding: .6rem 1.4rem; font-size: 1.05rem; }
+.bs-page .btn-primary { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+.bs-page .btn-primary:hover { background: #0b5ed7; border-color: #0a58ca; filter: none; }
+.bs-page .btn-success { background: #198754; border-color: #198754; color: #fff; }
+.bs-page .btn-success:hover { background: #157347; filter: none; }
+.bs-page .btn-outline-secondary { border-color: #6c757d; color: #6c757d; background: #fff; }
+.bs-page .btn-outline-secondary:hover { background: #6c757d; color: #fff; }
+.bs-page .btn-outline-primary { border-color: #0d6efd; color: #0d6efd; background: #fff; }
+.bs-page .btn-outline-primary:hover { background: #0d6efd; color: #fff; }
+.bs-page .form-label { display: block; margin: 0 0 .35rem; font-weight: 500; font-size: .9rem; color: #212529; }
+.bs-page .form-control { display: block; width: 100%; padding: .5rem .75rem; font-size: 1rem; color: #212529; background: #fff; border: 1px solid #ced4da; border-radius: .375rem; }
+.bs-page .form-control:focus { outline: 0; border-color: #86b7fe; box-shadow: 0 0 0 .25rem rgba(13,110,253,.25); }
+.bs-page .table { width: 100%; border-collapse: collapse; color: #212529; font-size: .95rem; }
+.bs-page .table th, .bs-page .table td { padding: .65rem .75rem; border-bottom: 1px solid #dee2e6; text-align: left; }
+.bs-page .table thead th { border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057; font-size: .8rem; text-transform: uppercase; letter-spacing: .3px; }
+.bs-page .table-striped tbody tr:nth-child(odd) { background: #f8f9fa; }
+.bs-page .table-hover tbody tr:hover { background: #eef2ff; }
+.bs-page .badge { display: inline-block; padding: .35em .6em; font-size: .75rem; font-weight: 600; border-radius: .375rem; line-height: 1; }
+.bs-page .rounded-pill { border-radius: 50rem; }
+.bs-page .text-bg-primary { background: #0d6efd; color: #fff; }
+.bs-page .text-bg-success { background: #198754; color: #fff; }
+.bs-page .text-bg-secondary { background: #6c757d; color: #fff; }
+.bs-page .text-bg-warning { background: #ffc107; color: #000; }
+.bs-page .text-bg-danger { background: #dc3545; color: #fff; }
+.bs-page .text-primary { color: #0d6efd; }
+.bs-page .price { font-size: 1.4rem; font-weight: 700; color: #0d6efd; }
+.bs-page .icon-thumb { width: 46px; height: 46px; border-radius: .375rem; border: 1px solid #dee2e6; background: #f8f9fa; object-fit: contain; }
+.bs-page hr { border: 0; border-top: 1px solid #dee2e6; margin: 1rem 0; }
+.bs-page .info-row { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid #f1f3f5; }
+.bs-page .info-row:last-child { border-bottom: 0; }
+.bs-page .info-row .k { color: #6c757d; }
+.bs-page .info-row .v { font-weight: 600; }
+.bs-page .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: #e9ecef; color: #495057; }
+.bs-page .rank-badge.g1 { background: #ffe28a; color: #7a5c00; } .bs-page .rank-badge.g2 { background: #dfe3e8; color: #4a5560; } .bs-page .rank-badge.g3 { background: #f2cba3; color: #7a4a1e; }
