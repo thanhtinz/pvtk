@@ -77,10 +77,10 @@ const app = () => document.getElementById('app');
 const tabs = {
   async dashboard() {
     const s = await api('/admin/stats');
-    app().innerHTML = `<h2>Tổng quan</h2><div class="grid cards">
-      ${card('Đang online', s.online)}${card('Tài khoản', s.accounts)}${card('Vật phẩm', s.items)}
-      ${card('Quái', s.monsters)}${card('Giftcode', s.giftcodes)}${card('Sản phẩm webshop', s.products)}</div>
-      <div class="card" style="margin-top:16px"><h3>Thao tác nhanh</h3>
+    app().innerHTML = `<div class="stat-tiles">
+      ${card('Đang online', s.online, '🟢')}${card('Tài khoản', s.accounts, '👥')}${card('Vật phẩm', s.items, '🎒')}
+      ${card('Quái', s.monsters, '🐲')}${card('Giftcode', s.giftcodes, '🎁')}${card('Webshop', s.products, '🛒')}</div>
+      <div class="card" style="margin-top:18px"><h3>⚡ Thao tác nhanh</h3>
         <button class="btn red" id="rb">Reset Boss (respawn toàn bộ)</button></div>`;
     document.getElementById('rb').onclick = async () => { const r = await api('/admin/reset-boss', 'POST', {}); toast('Đã respawn ' + r.respawned + ' quái'); };
   },
@@ -327,7 +327,7 @@ const tabs = {
   },
 };
 
-function card(label, val) { return `<div class="card"><div class="muted">${label}</div><div style="font-size:30px;font-weight:800;color:var(--gold)">${val}</div></div>`; }
+function card(label, val, icon) { return `<div class="stat-tile"><span class="ic">${icon || ''}</span><div class="k">${label}</div><div class="v">${val}</div></div>`; }
 function addBtn(parent, label, fn) { const b = el(`<button class="btn small sec">${label}</button>`); b.onclick = fn; parent.appendChild(b); }
 
 function economyDialog(u, after) {
@@ -423,9 +423,26 @@ function newsDialog() {
   };
 }
 
+const TAB_TITLES = {
+  dashboard: 'Tổng quan', users: 'Người chơi', online: 'Đang online', economy: 'Kinh tế',
+  items: 'Vật phẩm', monsters: 'Quái / Boss', maps: 'Máy chủ / Map', mail: 'Gửi vật phẩm',
+  market: 'Chợ ingame', products: 'Webshop', sepay: 'Cổng nạp (SePay)', packages: 'Gói nạp',
+  orders: 'Đơn nạp', news: 'Tin / Sự kiện', announce: 'Thông báo', giftcodes: 'Giftcode',
+  transactions: 'Lịch sử giao dịch',
+};
 function show(tab) {
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  const title = document.getElementById('pageTitle');
+  if (title) title.textContent = TAB_TITLES[tab] || 'Quản trị';
+  document.getElementById('sidebar').classList.remove('open');
   (tabs[tab] || tabs.dashboard)().catch(e => toast(e.message));
 }
 document.querySelectorAll('#nav a').forEach(a => a.onclick = () => show(a.dataset.tab));
+
+// admin identity + mobile sidebar toggle
+const whoName = document.getElementById('whoName');
+if (whoName) whoName.textContent = localStorage.getItem('pvtk_name') || 'admin';
+const menuBtn = document.getElementById('menuBtn');
+if (menuBtn) menuBtn.onclick = () => document.getElementById('sidebar').classList.toggle('open');
+
 show('dashboard');

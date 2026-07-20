@@ -6,32 +6,55 @@
   <title>PVTK Admin</title>
   <link rel="stylesheet" href="/style.css"/>
 </head>
-<body>
-  <header>
-    <div class="logo">⚙ PVTK ADMIN</div>
-    <nav id="nav">
-      <a data-tab="dashboard" class="active">Tổng quan</a>
-      <a data-tab="users">Người chơi</a>
-      <a data-tab="online">Đang online</a>
-      <a data-tab="announce">Thông báo</a>
-      <a data-tab="mail">Gửi vật phẩm</a>
-      <a data-tab="market">Chợ ingame</a>
-      <a data-tab="items">Vật phẩm</a>
-      <a data-tab="monsters">Quái/Boss</a>
-      <a data-tab="maps">Máy chủ/Map</a>
-      <a data-tab="giftcodes">Giftcode</a>
-      <a data-tab="products">Webshop</a>
-      <a data-tab="sepay">Cổng nạp (SePay)</a>
-      <a data-tab="packages">Gói nạp</a>
-      <a data-tab="orders">Đơn nạp</a>
-      <a data-tab="news">Tin/Sự kiện</a>
-      <a data-tab="economy">Kinh tế</a>
-      <a data-tab="transactions">Lịch sử</a>
-    </nav>
-    <div class="spacer"></div>
-    <div class="userbox"><a class="btn small sec" href="/">← Về trang chủ</a><a class="btn small" id="logout">Thoát</a></div>
-  </header>
-  <main id="app" class="container"></main>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="dot"></span> PVTK ADMIN</div>
+      <nav id="nav">
+        <div class="navgroup">Tổng quan</div>
+        <a data-tab="dashboard" class="active"><span class="ni">📊</span> Tổng quan</a>
+
+        <div class="navgroup">Người chơi</div>
+        <a data-tab="users"><span class="ni">👥</span> Người chơi</a>
+        <a data-tab="online"><span class="ni">🟢</span> Đang online</a>
+        <a data-tab="economy"><span class="ni">💰</span> Kinh tế</a>
+
+        <div class="navgroup">Game</div>
+        <a data-tab="items"><span class="ni">🎒</span> Vật phẩm</a>
+        <a data-tab="monsters"><span class="ni">🐲</span> Quái/Boss</a>
+        <a data-tab="maps"><span class="ni">🗺️</span> Máy chủ/Map</a>
+        <a data-tab="mail"><span class="ni">✉️</span> Gửi vật phẩm</a>
+        <a data-tab="market"><span class="ni">🏪</span> Chợ ingame</a>
+
+        <div class="navgroup">Nạp & Cửa hàng</div>
+        <a data-tab="products"><span class="ni">🛒</span> Webshop</a>
+        <a data-tab="sepay"><span class="ni">🏦</span> Cổng nạp (SePay)</a>
+        <a data-tab="packages"><span class="ni">📦</span> Gói nạp</a>
+        <a data-tab="orders"><span class="ni">🧾</span> Đơn nạp</a>
+
+        <div class="navgroup">Nội dung</div>
+        <a data-tab="news"><span class="ni">📰</span> Tin/Sự kiện</a>
+        <a data-tab="announce"><span class="ni">📢</span> Thông báo</a>
+        <a data-tab="giftcodes"><span class="ni">🎁</span> Giftcode</a>
+
+        <div class="navgroup">Hệ thống</div>
+        <a data-tab="transactions"><span class="ni">📜</span> Lịch sử</a>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-top">
+        <button class="btn small sec" id="menuBtn">☰</button>
+        <h1 id="pageTitle">Tổng quan</h1>
+        <div class="spacer"></div>
+        <span class="who">👤 <b id="whoName">admin</b></span>
+        <a class="btn small sec" href="/">← Trang chủ</a>
+        <a class="btn small" id="logout">Thoát</a>
+      </div>
+      <main id="app" class="admin-body"></main>
+    </div>
+  </div>
+
   <div id="toast"></div>
   <div id="modal-root"></div>
   <script src="/admin.js"></script>

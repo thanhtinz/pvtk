@@ -110,6 +110,10 @@ public final class WebServer {
             sendJson(ex, 200, tokenResponse(game.accounts().get(u)));
             return;
         }
+        if (p.equals("/status") && m.equals("GET")) {
+            sendJson(ex, 200, Map.of("online", game.sessions().onlineCount(), "up", true));
+            return;
+        }
         if (p.equals("/news") && m.equals("GET")) {
             sendJson(ex, 200, Map.of("news", web.root().news));
             return;

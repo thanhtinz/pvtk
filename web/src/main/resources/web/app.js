@@ -75,24 +75,93 @@ function setActive(view) {
 }
 
 const views = {
-  home() {
+  async home() {
     app().innerHTML = `
-      <div class="hero">
-        <h1>Phong Vân Online</h1>
-        <p>Bản dựng lại đa nền tảng (PC · Android · iOS · Java) của tựa game kiếm hiệp huyền thoại.
-           Đăng nhập, lập bang, chinh chiến và trở thành đệ nhất cao thủ!</p>
-        <div class="row" style="justify-content:center;margin-top:22px">
-          <button class="btn" onclick="go('topup')">Nạp thẻ</button>
-          <button class="btn sec" onclick="go('shop')">Vào Webshop</button>
+      <section class="hero">
+        <div class="eyebrow">Kiếm Hiệp · MMORPG</div>
+        <h1>PHONG VÂN ONLINE</h1>
+        <p class="sub">Bản dựng lại đa nền tảng (PC · Android · iOS · Java) của tựa game kiếm hiệp
+          huyền thoại. Luyện công, lập bang, chinh chiến — trở thành đệ nhất cao thủ thiên hạ!</p>
+        <div class="cta">
+          <button class="btn big" onclick="go('topup')">💳 Nạp thẻ</button>
+          <button class="btn big sec" onclick="go('shop')">🛒 Vào Webshop</button>
         </div>
+        <div class="server-bar" id="serverBar">
+          <div class="stat"><div class="k">Máy chủ</div><div class="v on" id="srvState">● Hoạt động</div></div>
+          <div class="stat"><div class="k">Đang online</div><div class="v" id="srvOnline">—</div></div>
+          <div class="stat"><div class="k">Cao thủ</div><div class="v" id="srvTop">—</div></div>
+          <div class="stat"><div class="k">Nền tảng</div><div class="v" style="font-size:16px">PC · Mobile · Java</div></div>
+        </div>
+      </section>
+
+      <div class="quick">
+        <a onclick="go('topup')"><span class="qi">💳</span><span class="ql">Nạp thẻ</span></a>
+        <a onclick="go('giftcode')"><span class="qi">🎁</span><span class="ql">Giftcode</span></a>
+        <a onclick="go('shop')"><span class="qi">🛒</span><span class="ql">Webshop</span></a>
+        <a onclick="go('leaderboard')"><span class="qi">🏆</span><span class="ql">Xếp hạng</span></a>
+        <a onclick="go('news')"><span class="qi">📰</span><span class="ql">Tin tức</span></a>
+        <a onclick="go('profile')"><span class="qi">👤</span><span class="ql">Cá nhân</span></a>
       </div>
-      <div class="container grid cards" id="homeCards"></div>`;
+
+      <div class="section">
+        <div class="section-title"><span>⚔ Tính năng nổi bật</span></div>
+        <div class="grid cards" id="homeCards"></div>
+      </div>
+
+      <div class="section">
+        <div class="two-col grid">
+          <div>
+            <div class="section-title"><span>📰 Tin tức & Sự kiện</span></div>
+            <div class="card" id="homeNews"><div class="muted" style="padding:8px">Đang tải…</div></div>
+            <div class="row" style="justify-content:center;margin-top:14px">
+              <button class="btn sec small" onclick="go('news')">Xem tất cả tin tức →</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-title"><span>🏆 Cao thủ</span></div>
+            <div class="card" id="homeTop"><div class="muted" style="padding:8px">Đang tải…</div></div>
+          </div>
+        </div>
+      </div>`;
+
     const c = document.getElementById('homeCards');
-    [['⚔ Combat lượt & real-time', 'Đánh quái, PK, đấu trường, chiến tranh bang.'],
-     ['🛡 Trang bị & kỹ năng', 'Dữ liệu vật phẩm/kỹ năng gốc từ game.'],
-     ['🤝 Xã hội', 'Bang hội, tổ đội, bạn bè, chợ giao dịch, thư.'],
-     ['🐾 Pet & hộ tống', 'Thú cưng đi theo, nhiệm vụ tiêu xa, boss.']]
-      .forEach(([h, b]) => c.appendChild(el(`<div class="card"><h3>${h}</h3><div class="muted">${b}</div></div>`)));
+    [['⚔️', 'Combat lượt & real-time', 'Đánh quái, PK, đấu trường, chiến tranh bang hội.'],
+     ['🛡️', 'Trang bị & kỹ năng', 'Dữ liệu vật phẩm, kỹ năng, rơi đồ gốc từ game.'],
+     ['🤝', 'Xã hội phong phú', 'Bang hội, tổ đội, bạn bè, chợ giao dịch, hòm thư.'],
+     ['🐾', 'Pet & hộ tống', 'Thú cưng đi theo, nhiệm vụ tiêu xa, săn boss.']]
+      .forEach(([i, h, b]) => c.appendChild(el(
+        `<div class="card feature"><div class="fi">${i}</div><h3>${h}</h3><div class="muted">${b}</div></div>`)));
+
+    // Live server stats + previews (best-effort; ignore failures).
+    try {
+      const s = await api('/status');
+      document.getElementById('srvOnline').textContent = s.online;
+      document.getElementById('srvState').textContent = s.up ? '● Hoạt động' : '● Bảo trì';
+    } catch (e) { document.getElementById('srvState').textContent = '● Offline'; }
+    try {
+      const { top } = await api('/leaderboard');
+      document.getElementById('srvTop').textContent = top.length ? esc(top[0].username) : '—';
+      const ht = document.getElementById('homeTop');
+      ht.innerHTML = '';
+      if (!top.length) ht.innerHTML = '<div class="muted" style="padding:8px">Chưa có dữ liệu.</div>';
+      top.slice(0, 8).forEach((r, i) => ht.appendChild(el(
+        `<div class="news-item" style="padding:9px 12px">
+           <div class="badge" style="width:34px;height:34px;font-size:15px;color:var(--gold)">${['🥇','🥈','🥉'][i] || (i + 1)}</div>
+           <div style="flex:1"><div class="nt">${esc(r.username)}</div>
+             <div class="nd">Cấp ${r.level} · ${r.gold} vàng</div></div></div>`)));
+    } catch (e) { /* ignore */ }
+    try {
+      const { news } = await api('/news');
+      const hn = document.getElementById('homeNews');
+      hn.innerHTML = '';
+      if (!news.length) hn.innerHTML = '<div class="muted" style="padding:8px">Chưa có tin tức.</div>';
+      news.slice(0, 5).forEach(n => hn.appendChild(el(
+        `<div class="news-item">
+           <div class="badge ${n.type === 'event' ? 'event' : ''}">${n.type === 'event' ? '🎉' : '📰'}</div>
+           <div style="flex:1"><div class="nt">${esc(n.title)}</div>
+             <div class="nd">${new Date(n.date).toLocaleString('vi')}</div>
+             <div class="nb">${esc((n.body || '').slice(0, 120))}${(n.body || '').length > 120 ? '…' : ''}</div></div></div>`)));
+    } catch (e) { /* ignore */ }
   },
 
   async news() {
