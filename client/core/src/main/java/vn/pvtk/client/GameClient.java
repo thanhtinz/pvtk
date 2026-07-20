@@ -198,6 +198,16 @@ public final class GameClient implements ConnectionListener {
         connection.send(new vn.pvtk.protocol.message.Messages.ConvertXu(amount).toPacket());
     }
 
+    /** Ask the server for the in-game top-up package menu ("Gói nạp"). */
+    public void requestRedeemPackages() {
+        connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.REDEEM_LIST).putShort(0));
+    }
+
+    /** Redeem a top-up package by id: spends web Xu for in-game coin + bonus items. */
+    public void redeemPackage(int packageId) {
+        connection.send(new vn.pvtk.protocol.message.Messages.RedeemBuy(packageId).toPacket());
+    }
+
     // --- Quests ---
     public void requestQuests() {
         connection.send(new vn.pvtk.protocol.Packet(vn.pvtk.protocol.Opcodes.QUEST_LIST).putShort(0));
@@ -324,6 +334,8 @@ public final class GameClient implements ConnectionListener {
                 state.setCurrency(ci.gold(), ci.coin(), ci.xu());
                 listener.onCurrency(ci.gold(), ci.coin(), ci.xu());
             }
+            case Opcodes.REDEEM_LIST -> listener.onRedeemList(
+                    vn.pvtk.protocol.message.Messages.RedeemList.from(p));
             default -> { /* opcode not yet implemented in this rewrite */ }
         }
     }

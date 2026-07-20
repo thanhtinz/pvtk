@@ -105,6 +105,8 @@ public final class Opcodes {
     public static final int BATTLE_UPDATE       = 12508; // turn battle: round result / model
     public static final int CURRENCY_INFO       = 11078; // server->client: gold / coin / xu balances
     public static final int CONVERT_XU          = 11030; // client->server: convert web Xu -> in-game coin
+    public static final int REDEEM_LIST         = 11031; // both: request / push in-game top-up packages
+    public static final int REDEEM_BUY          = 11032; // client->server: redeem a package by id (spends Xu)
 
     static {
         register(5000, "CHECK_EDITION_MSG");

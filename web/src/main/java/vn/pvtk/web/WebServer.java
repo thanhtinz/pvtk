@@ -52,7 +52,27 @@ public final class WebServer {
         http.setExecutor(Executors.newFixedThreadPool(8));
         http.createContext("/", this::route);
         http.start();
+        pushRedeemPackages(); // sync the game with admin-configured in-game top-up packages
         log.info("PVTK website listening on http://localhost:{}  (admin: admin/admin123)", port);
+    }
+
+    /**
+     * Pushes the admin-configured in-game top-up packages ("Gói nạp") into the
+     * live game server so the in-game redeem menu reflects the current catalogue.
+     */
+    private void pushRedeemPackages() {
+        var packs = new java.util.ArrayList<vn.pvtk.server.data.GameData.RedeemPack>();
+        for (WebData.RedeemPackage rp : web.root().redeemPackages) {
+            if (!rp.enabled) {
+                continue;
+            }
+            var bonus = new java.util.ArrayList<vn.pvtk.server.data.GameData.RedeemBonus>();
+            for (WebData.ItemQty q : rp.bonus) {
+                bonus.add(new vn.pvtk.server.data.GameData.RedeemBonus(q.itemId, Math.max(1, q.count)));
+            }
+            packs.add(new vn.pvtk.server.data.GameData.RedeemPack(rp.id, rp.name, rp.costXu, rp.coin, bonus));
+        }
+        game.gameData().setRedeemPacks(packs);
     }
 
     public void stop() {
@@ -277,6 +297,13 @@ public final class WebServer {
                     sendJson(ex, 200, saveSepay(body(ex)));
                 }
             }
+            case "/redeempkgs" -> {
+                if (m.equals("GET")) {
+                    sendJson(ex, 200, Map.of("packages", web.root().redeemPackages));
+                } else {
+                    sendJson(ex, 200, saveRedeemPackage(body(ex)));
+                }
+            }
             case "/packages" -> {
                 if (m.equals("GET")) {
                     sendJson(ex, 200, Map.of("packages", web.root().packages));
@@ -320,6 +347,12 @@ public final class WebServer {
                     int id = Integer.parseInt(p.substring(10));
                     web.root().packages.removeIf(pk -> pk.id == id);
                     web.save();
+                    sendJson(ex, 200, Map.of("ok", true));
+                } else if (p.startsWith("/redeempkgs/") && m.equals("DELETE")) {
+                    int id = Integer.parseInt(p.substring(12));
+                    web.root().redeemPackages.removeIf(pk -> pk.id == id);
+                    web.save();
+                    pushRedeemPackages();
                     sendJson(ex, 200, Map.of("ok", true));
                 } else {
                     throw new HttpError(404, "Admin route");
@@ -589,6 +622,10 @@ public final class WebServer {
 
     private Map<String, Object> saveSite(Map<String, Object> b) {
         var s = web.root().site;
+        // Website identity — kept when blank so a stray save never wipes the name.
+        s.siteName = orKeep(str(b, "siteName"), s.siteName);
+        s.tagline = orKeep(str(b, "tagline"), s.tagline);
+        s.copyright = orKeep(str(b, "copyright"), s.copyright);
         // For contact fields keep the old value when blank; for links allow clearing.
         s.supportEmail = orKeep(str(b, "supportEmail"), s.supportEmail);
         s.hotline = orKeep(str(b, "hotline"), s.hotline);
@@ -641,6 +678,45 @@ public final class WebServer {
             pk.name = (pk.priceVnd / 1000) + "K → " + pk.xu + " Xu";
         }
         web.save();
+        return Map.of("ok", true, "id", pk.id);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> saveRedeemPackage(Map<String, Object> b) {
+        WebData.RedeemPackage pk = new WebData.RedeemPackage();
+        Object idv = b.get("id");
+        if (idv != null && toLong(idv) > 0) {
+            WebData.RedeemPackage found = web.redeemPackageById((int) toLong(idv));
+            if (found != null) {
+                pk = found;
+            }
+        }
+        if (pk.id == 0) {
+            pk.id = web.root().redeemSeq++;
+            web.root().redeemPackages.add(pk);
+        }
+        pk.name = str(b, "name");
+        pk.costXu = num(b, "costXu");
+        pk.coin = num(b, "coin");
+        pk.enabled = b.get("enabled") == null || Boolean.parseBoolean(String.valueOf(b.get("enabled")));
+        pk.bonus = new java.util.ArrayList<>();
+        Object bonus = b.get("bonus");
+        if (bonus instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> mm) {
+                    int itemId = (int) toLong(((Map<String, Object>) mm).get("itemId"));
+                    int count = (int) Math.max(1, toLong(((Map<String, Object>) mm).get("count")));
+                    if (itemId > 0) {
+                        pk.bonus.add(new WebData.ItemQty(itemId, count));
+                    }
+                }
+            }
+        }
+        if (pk.name.isBlank()) {
+            pk.name = pk.costXu + " Xu → " + pk.coin + " Tiền nạp";
+        }
+        web.save();
+        pushRedeemPackages();
         return Map.of("ok", true, "id", pk.id);
     }
 

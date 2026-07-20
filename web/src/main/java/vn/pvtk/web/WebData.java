@@ -101,8 +101,26 @@ public final class WebData {
         public String ref = "";                  // SePay reference / bank txn id
     }
 
-    /** Public site settings (contact info + download links), edited in the admin panel. */
+    /**
+     * An in-game top-up package ("Gói nạp"): the player spends {@code costXu} of
+     * their web wallet to receive {@code coin} in-game cash plus {@code bonus}
+     * items, chosen from a menu inside the game. Configured in the admin panel
+     * and pushed into the running game server.
+     */
+    public static final class RedeemPackage {
+        public int id;
+        public String name = "";
+        public long costXu;                      // Xu spent from the web wallet
+        public long coin;                        // in-game coin ("Tiền nạp") granted
+        public List<ItemQty> bonus = new ArrayList<>(); // bonus items
+        public boolean enabled = true;
+    }
+
+    /** Public site settings (name, contact info + download links), edited in the admin panel. */
     public static final class SiteConfig {
+        public String siteName = "Phong Vân Online";
+        public String tagline = "Kiếm Hiệp Huyền Thoại";
+        public String copyright = "© 2024 Phong Vân Online · Server cộng đồng · Chơi miễn phí";
         public String supportEmail = "hotro@phongvan.vn";
         public String hotline = "1900 0000";
         public String facebookUrl = "";       // Fanpage
@@ -120,12 +138,14 @@ public final class WebData {
         public List<Product> products = new ArrayList<>();
         public List<Tx> transactions = new ArrayList<>();
         public List<Package> packages = new ArrayList<>();
+        public List<RedeemPackage> redeemPackages = new ArrayList<>();
         public List<Order> orders = new ArrayList<>();
         public SePayConfig sepay = new SePayConfig();
         public SiteConfig site = new SiteConfig();
         public int newsSeq = 1;
         public int productSeq = 1;
         public int packageSeq = 1;
+        public int redeemSeq = 1;
         public long txSeq = 1;
         public long orderSeq = 1;
     }
@@ -180,10 +200,25 @@ public final class WebData {
             gp.name = (pk[0] / 1000) + "K → " + pk[1] + " Xu" + (pk[2] > 0 ? " (+" + pk[2] + ")" : "");
             root.packages.add(gp);
         }
+
+        // Default in-game redeem packages (spend Xu -> in-game coin + bonus items).
+        long[][] redeems = {{100, 100}, {500, 550}, {1000, 1150}, {5000, 6000}};
+        for (long[] r : redeems) {
+            RedeemPackage rp = new RedeemPackage();
+            rp.id = root.redeemSeq++;
+            rp.costXu = r[0];
+            rp.coin = r[1];
+            rp.name = r[0] + " Xu → " + r[1] + " Tiền nạp";
+            root.redeemPackages.add(rp);
+        }
     }
 
     public Package packageById(int id) {
         return root.packages.stream().filter(x -> x.id == id).findFirst().orElse(null);
+    }
+
+    public RedeemPackage redeemPackageById(int id) {
+        return root.redeemPackages.stream().filter(x -> x.id == id).findFirst().orElse(null);
     }
 
     public synchronized Order createOrder(String user, Package pk, String code) {

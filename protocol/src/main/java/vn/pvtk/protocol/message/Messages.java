@@ -999,6 +999,54 @@ public final class Messages {
         }
     }
 
+    // ==================================================================
+    // In-game top-up packages ("Gói nạp"): spend web Xu to receive
+    // in-game coin + bonus items, chosen from a menu inside the game.
+    // (REDEEM_LIST 11031 both ways, REDEEM_BUY 11032 client->server)
+    // ==================================================================
+
+    /** One redeemable package: {@code bonus} is a display string of the items granted. */
+    public record RedeemEntry(int id, String name, long costXu, long coin, String bonus) {
+        public void write(Packet p) {
+            p.putInt(id).putString(name).putLong(costXu).putLong(coin).putString(bonus);
+        }
+
+        public static RedeemEntry read(Packet p) {
+            return new RedeemEntry(p.getInt(), p.getString(), p.getLong(), p.getLong(), p.getString());
+        }
+    }
+
+    /** Server→client: the catalogue of in-game top-up packages. */
+    public record RedeemList(List<RedeemEntry> packages) {
+        public Packet toPacket() {
+            Packet p = new Packet(Opcodes.REDEEM_LIST).putShort(packages.size());
+            for (RedeemEntry e : packages) {
+                e.write(p);
+            }
+            return p;
+        }
+
+        public static RedeemList from(Packet p) {
+            int n = p.getUShort();
+            List<RedeemEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(RedeemEntry.read(p));
+            }
+            return new RedeemList(list);
+        }
+    }
+
+    /** Client→server: redeem the package with {@code packageId}. */
+    public record RedeemBuy(int packageId) {
+        public Packet toPacket() {
+            return new Packet(Opcodes.REDEEM_BUY).putInt(packageId);
+        }
+
+        public static RedeemBuy from(Packet p) {
+            return new RedeemBuy(p.getInt());
+        }
+    }
+
     /** roundState: 0 ongoing, 1 win, 2 lose, 3 error. */
     public record BattleUpdate(int battleId, int round, int roundState,
                                List<Combatant> combatants, List<BattleAction> actions,

@@ -14,3 +14,12 @@ application {
 tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
 }
+
+// Decodes sprite_*.spr animation modules and writes a contact sheet per sprite.
+tasks.register<JavaExec>("exportAnim") {
+    group = "verification"
+    description = "Compose original .spr animation modules into contact-sheet PNGs"
+    workingDir = rootProject.projectDir
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("vn.pvtk.tools.SprAnimationExporter")
+}

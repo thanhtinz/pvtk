@@ -88,6 +88,10 @@ public final class PacketDispatcher {
         register(Opcodes.BATTLE_ENTER, battle);
         register(Opcodes.BATTLE_PLAN, battle);
         register(Opcodes.CONVERT_XU, new ConvertHandler());
+
+        RedeemHandler redeem = new RedeemHandler();
+        register(Opcodes.REDEEM_LIST, redeem);
+        register(Opcodes.REDEEM_BUY, redeem);
     }
 
     public void register(int opcode, PacketHandler handler) {

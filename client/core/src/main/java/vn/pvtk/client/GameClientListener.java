@@ -102,6 +102,10 @@ public interface GameClientListener {
     default void onCurrency(long gold, long coin, long xu) {
     }
 
+    /** The in-game top-up package menu ("Gói nạp") arrived. */
+    default void onRedeemList(vn.pvtk.protocol.message.Messages.RedeemList packages) {
+    }
+
     default void onDisconnected(String reason) {
     }
 }

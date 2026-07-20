@@ -451,6 +451,25 @@ async function applyFooter() {
   const bp = document.getElementById('bsPhone'); if (bp) bp.href = 'tel:' + (site.hotline || '').replace(/\s/g, '');
   const bfb = document.getElementById('bsFb'); if (bfb) { bfb.href = site.facebookUrl || '#'; bfb.onclick = site.facebookUrl ? null : (e) => { e.preventDefault(); toast('Chưa cấu hình Facebook'); }; }
   const bg = document.getElementById('bsGuide'); if (bg) bg.onclick = () => { if (site.guideUrl) window.open(site.guideUrl, '_blank'); else go('news'); };
+  applySiteIdentity(site);
+}
+
+// Applies the admin-configured website name / tagline / copyright across the page.
+function applySiteIdentity(site) {
+  const name = (site.siteName || 'Phong Vân Online').trim();
+  const tagline = (site.tagline || '').trim();
+  document.title = tagline ? `${name} — ${tagline}` : name;
+  // Brand labels keep their logo <img>; only the trailing text node changes.
+  document.querySelectorAll('.bs-brand, .bs-foot-brand').forEach(el => {
+    const last = el.lastChild;
+    if (last && last.nodeType === 3) last.textContent = ' ' + name;
+  });
+  const logo = document.querySelector('footer.site .logo');
+  if (logo) logo.textContent = name.toUpperCase();
+  if (site.copyright) {
+    const bottom = document.querySelector('.bs-foot-bottom');
+    if (bottom) bottom.textContent = site.copyright;
+  }
 }
 
 function playTrailer() {

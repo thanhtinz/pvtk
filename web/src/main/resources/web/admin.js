@@ -300,10 +300,14 @@ const tabs = {
   async site() {
     const { site } = await api('/admin/site');
     const f = (id, label, val, ph) => `<label>${label}</label><input id="${id}" value="${esc(val || '')}" placeholder="${ph || ''}"/>`;
-    app().innerHTML = `<h2>Liên hệ & Tải game</h2>
+    app().innerHTML = `<h2>Website & Liên hệ</h2>
       <div class="card" style="max-width:620px">
-        <p class="muted">Thông tin hỗ trợ và các đường link hiển thị ở footer / nút Tải game của trang chủ.</p>
-        <h3>Hỗ trợ</h3>
+        <p class="muted">Tên website, thông tin hỗ trợ và các đường link hiển thị ở header / footer / nút Tải game.</p>
+        <h3>Thông tin website</h3>
+        ${f('siteName', 'Tên website', site.siteName, 'Phong Vân Online')}
+        ${f('tagline', 'Slogan / Tagline', site.tagline, 'Kiếm Hiệp Huyền Thoại')}
+        ${f('copyright', 'Dòng bản quyền (footer)', site.copyright, '© 2024 ...')}
+        <h3 style="margin-top:18px">Hỗ trợ</h3>
         ${f('supportEmail', 'Email hỗ trợ', site.supportEmail, 'hotro@...')}
         ${f('hotline', 'Số điện thoại / Hotline', site.hotline, '1900 ...')}
         ${f('facebookUrl', 'Link Facebook (Fanpage)', site.facebookUrl, 'https://facebook.com/...')}
@@ -317,12 +321,13 @@ const tabs = {
         <button class="btn" id="save" style="margin-top:16px">Lưu cấu hình</button>
       </div>`;
     document.getElementById('save').onclick = async () => {
-      const ids = ['supportEmail', 'hotline', 'facebookUrl', 'groupUrl', 'guideUrl',
+      const ids = ['siteName', 'tagline', 'copyright', 'supportEmail', 'hotline',
+        'facebookUrl', 'groupUrl', 'guideUrl',
         'downloadPc', 'downloadAndroid', 'downloadIos', 'downloadJava'];
       const body = {};
       ids.forEach(i => body[i] = document.getElementById(i).value.trim());
       await api('/admin/site', 'POST', body);
-      toast('Đã lưu cấu hình liên hệ & tải game');
+      toast('Đã lưu cấu hình website & liên hệ');
     };
   },
 
@@ -336,6 +341,21 @@ const tabs = {
         <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
     document.getElementById('new').onclick = () => packageDialog();
     app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/packages/' + b.dataset.id, 'DELETE'); tabs.packages(); });
+  },
+
+  async redeempkgs() {
+    const { packages } = await api('/admin/redeempkgs');
+    app().innerHTML = `<h2>Gói đổi trong game</h2>
+      <p class="muted">Người chơi mở menu <b>NẠP GAME</b> trong game để đổi Xu (ví web) lấy Tiền nạp + vật phẩm.</p>
+      <button class="btn" id="new">+ Thêm gói</button>
+      <div class="card" style="margin-top:12px"><table id="t"><tr>
+        <th>Tên</th><th>Tốn Xu</th><th>Tiền nạp</th><th>Vật phẩm tặng</th><th>Bật</th><th></th></tr>
+      ${packages.map(p => `<tr><td>${esc(p.name)}</td><td>${p.costXu}</td><td>${p.coin}</td>
+        <td>${(p.bonus || []).map(q => '#' + q.itemId + '×' + q.count).join(', ') || '—'}</td>
+        <td>${p.enabled ? ICON.check : ICON.close}</td>
+        <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
+    document.getElementById('new').onclick = () => redeemDialog();
+    app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/redeempkgs/' + b.dataset.id, 'DELETE'); tabs.redeempkgs(); });
   },
 
   async orders() {
@@ -435,6 +455,28 @@ function packageDialog() {
   };
 }
 
+function redeemDialog() {
+  modal(`<h3>Thêm gói đổi trong game</h3>
+    <label>Tên (để trống = tự đặt)</label><input id="name"/>
+    <label>Tốn Xu (ví web)</label><input id="costXu" type="number" value="100"/>
+    <label>Tiền nạp nhận được</label><input id="coin" type="number" value="100"/>
+    <label>Vật phẩm tặng (định dạng: itemId×số, cách nhau bởi dấu phẩy)</label>
+    <input id="bonus" placeholder="vd: 1×2, 45×1"/>
+    <div class="row" style="margin-top:14px"><button class="btn" id="ok">Lưu</button>
+      <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
+  document.getElementById('ok').onclick = async () => {
+    const bonus = (document.getElementById('bonus').value || '').split(',')
+      .map(s => s.trim()).filter(Boolean).map(s => {
+        const m = s.split(/[x×*]/i);
+        return { itemId: Number(m[0]), count: Number(m[1] || 1) };
+      }).filter(q => q.itemId > 0);
+    await api('/admin/redeempkgs', 'POST', { name: document.getElementById('name').value,
+      costXu: Number(document.getElementById('costXu').value),
+      coin: Number(document.getElementById('coin').value), bonus });
+    toast('Đã lưu gói đổi'); closeModal(); tabs.redeempkgs();
+  };
+}
+
 function newsDialog() {
   modal(`<h3>Viết bài</h3>
     <label>Loại</label><select id="type"><option value="news">Tin tức</option><option value="event">Sự kiện</option></select>
@@ -458,7 +500,8 @@ const TAB_TITLES = {
   items: 'Vật phẩm', monsters: 'Quái / Boss', maps: 'Máy chủ / Map', mail: 'Gửi vật phẩm',
   market: 'Chợ ingame', products: 'Webshop', sepay: 'Cổng nạp (SePay)', packages: 'Gói nạp',
   orders: 'Đơn nạp', news: 'Tin / Sự kiện', announce: 'Thông báo', giftcodes: 'Giftcode',
-  site: 'Liên hệ & Tải game', transactions: 'Lịch sử giao dịch',
+  packages: 'Gói nạp', redeempkgs: 'Gói đổi trong game',
+  site: 'Website & Liên hệ', transactions: 'Lịch sử giao dịch',
 };
 function show(tab) {
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
