@@ -83,6 +83,12 @@ public final class GameClient implements ConnectionListener {
                 vn.pvtk.protocol.message.Messages.BagAction.UNEQUIP, gearType, 0).toPacket());
     }
 
+    /** Uses (consumes) the item in a bag slot — e.g. a HP/MP restore potion. */
+    public void useItem(int bagSlot) {
+        connection.send(new vn.pvtk.protocol.message.Messages.BagAction(
+                vn.pvtk.protocol.message.Messages.BagAction.USE, bagSlot, 0).toPacket());
+    }
+
     // --- Combat ---
     public void attack(int targetId) {
         attack(targetId, 0);

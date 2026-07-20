@@ -21,10 +21,11 @@ from the legacy client and re-implemented in clean Java 21.
 - ♻️ **Shared client core** — pure-JDK networking + game state reused by every
   platform.
 - 🎮 **libGDX game** — single rendering/input codebase → PC + Android + iOS.
-- ⚔️ **Gameplay systems** — inventory & equipment (`item.txt`), monster combat
-  with rewards/level-ups, **item drops** (`monster_reward.txt` loot tables) &
-  respawn (`monster.txt`), tiered monster spawns across town/city/wilderness,
-  skills with MP (`skill.txt`),
+- ⚔️ **Gameplay systems** — inventory & equipment (`item.txt`), **usable
+  consumables** (HP/MP restore potions from the original `power` effects),
+  monster combat with rewards/level-ups, **item drops** (`monster_reward.txt`
+  loot tables) & respawn (`monster.txt`), tiered monster spawns across
+  town/city/wilderness, skills with MP (`skill.txt`),
   NPC shops (`shop.txt`), quests, achievements, a player marketplace, pet
   companions that follow & auto-fight, friends, mail (with gold/item
   attachments), party/team, map travel, country/guild, **country war**,

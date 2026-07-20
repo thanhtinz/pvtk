@@ -146,6 +146,30 @@ class GameplaySystemsTest {
     }
 
     @Test
+    void usingPotionRestoresHpAndConsumesIt() throws Exception {
+        GameClient c = new GameClient(new GameClientListener() { });
+        c.connect("127.0.0.1", port);
+        c.login("ThuongBinh", "", 0);
+        assertTrue(await(() -> c.state().self() != null), "login");
+
+        // Give the player a vitality herb (item 22: +30% HP / +30% MP) and wound them.
+        var session = server.world().findByName("ThuongBinh");
+        assertNotNull(session, "player session");
+        var p = session.player();
+        int slot = p.inventory().add(22, 1);
+        assertTrue(slot >= 0, "herb should be added to the bag");
+        p.damage(500);
+        int wounded = p.hp();
+
+        c.useItem(slot);
+        assertTrue(await(() -> c.state().self() != null && c.state().self().hp > wounded),
+                "using the herb should restore HP");
+        assertTrue(await(() -> p.inventory().itemAt(slot) == 0),
+                "the herb should be consumed after use");
+        c.disconnect();
+    }
+
+    @Test
     void countryCreateListAndJoin() throws Exception {
         AtomicReference<CountryActionResult> aCreate = new AtomicReference<>();
         GameClient a = new GameClient(new GameClientListener() {
@@ -652,13 +676,21 @@ class GameplaySystemsTest {
 
         c.jumpMap(3);
         assertTrue(await(() -> c.state().others().stream().anyMatch(Entity::isMonster)), "monsters");
-        // Stand on a monster so its aggro range covers us.
-        Entity monster = c.state().others().stream().filter(Entity::isMonster).findFirst().orElseThrow();
-        c.move(monster.x, monster.y, 0);
 
+        // The aggro tick runs once a second. Re-pick a live monster from the
+        // current snapshot each round and stand on it, so a stale entity from the
+        // previous map (the newbie town also has monsters now) can't strand us on
+        // empty ground. Poll for damage over several ticks.
         int maxHp = c.state().self().maxHp;
-        assertTrue(await(() -> c.state().self() != null && c.state().self().hp < maxHp),
-                "a nearby monster should damage the player");
+        boolean hurt = false;
+        for (int i = 0; i < 40 && !hurt; i++) {
+            c.state().others().stream().filter(Entity::isMonster)
+                    .filter(e -> e.hp > 0).findFirst()
+                    .ifPresent(m -> c.move(m.x, m.y, 0));
+            Thread.sleep(250);
+            hurt = c.state().self() != null && c.state().self().hp < maxHp;
+        }
+        assertTrue(hurt, "a nearby monster should damage the player");
         c.disconnect();
     }
 

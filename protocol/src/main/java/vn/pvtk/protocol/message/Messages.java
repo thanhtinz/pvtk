@@ -238,6 +238,7 @@ public final class Messages {
         public static final int LIST = 0;
         public static final int EQUIP = 1;
         public static final int UNEQUIP = 2;
+        public static final int USE = 3;
 
         public Packet toPacket() {
             return new Packet(Opcodes.BAG).putByte(kind).putShort(slot).putShort(arg);

@@ -199,6 +199,13 @@ public final class ConsoleClient {
                         System.out.println("usage: eq <bagSlot>");
                     }
                 }
+                case "use" -> {
+                    if (t.length > 1) {
+                        client.useItem(Integer.parseInt(t[1].trim()));
+                    } else {
+                        System.out.println("usage: use <bagSlot>");
+                    }
+                }
                 case "atk" -> {
                     if (t.length > 1) {
                         client.attack(Integer.parseInt(t[1].trim()));
@@ -348,6 +355,7 @@ public final class ConsoleClient {
         System.out.println("  m <x> <y>            move          s <text>     say (world)");
         System.out.println("  jump <mapId>         change map     who          list entities");
         System.out.println("  bag                  inventory      eq <slot>    equip item");
+        System.out.println("  use <slot>           dùng vật phẩm (thuốc hồi HP/MP)");
         System.out.println("  atk <targetId>       attack         skills       list skills");
         System.out.println("  shop [id]            open shop      buy <itemId> [n] | sell <slot> [n]");
         System.out.println("  party <name>         invite         leaveparty   leave party");

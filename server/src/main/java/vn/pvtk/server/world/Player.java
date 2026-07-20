@@ -231,6 +231,16 @@ public final class Player {
         this.mp = Math.max(0, Math.min(maxMp, newMp));
     }
 
+    /** Restores HP/MP (used by consumables); returns true if anything actually changed. */
+    public boolean heal(int hpAmount, int mpAmount) {
+        int newHp = Math.min(maxHp, hp + Math.max(0, hpAmount));
+        int newMp = Math.min(maxMp, mp + Math.max(0, mpAmount));
+        boolean changed = newHp != hp || newMp != mp;
+        this.hp = newHp;
+        this.mp = newMp;
+        return changed;
+    }
+
     public int exp() {
         return exp;
     }
