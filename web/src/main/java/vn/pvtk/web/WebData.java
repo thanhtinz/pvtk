@@ -101,6 +101,19 @@ public final class WebData {
         public String ref = "";                  // SePay reference / bank txn id
     }
 
+    /** Public site settings (contact info + download links), edited in the admin panel. */
+    public static final class SiteConfig {
+        public String supportEmail = "hotro@phongvan.vn";
+        public String hotline = "1900 0000";
+        public String facebookUrl = "";       // Fanpage
+        public String groupUrl = "";           // Zalo/Facebook group
+        public String guideUrl = "";           // Hướng dẫn (may be a full URL; empty => internal news page)
+        public String downloadPc = "";         // PC client download link
+        public String downloadAndroid = "";    // Android APK link
+        public String downloadIos = "";        // iOS link
+        public String downloadJava = "";       // Java client link
+    }
+
     public static final class Root {
         public List<News> news = new ArrayList<>();
         public List<Giftcode> giftcodes = new ArrayList<>();
@@ -109,6 +122,7 @@ public final class WebData {
         public List<Package> packages = new ArrayList<>();
         public List<Order> orders = new ArrayList<>();
         public SePayConfig sepay = new SePayConfig();
+        public SiteConfig site = new SiteConfig();
         public int newsSeq = 1;
         public int productSeq = 1;
         public int packageSeq = 1;

@@ -21,6 +21,13 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2600);
 }
 function iconUrl(iconId) { return `/api/items/${iconId}/icon.svg`; }
+// Public site settings (contact info + download links), configured in admin.
+let _site = null;
+async function getSite() {
+  if (_site) return _site;
+  try { _site = (await api('/site')).site || {}; } catch (e) { _site = {}; }
+  return _site;
+}
 // Use a <template> so table fragments (<tr>/<td>) parse correctly — a <div>
 // silently drops them, which collapses table rows into one line of text.
 function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
@@ -78,6 +85,7 @@ function setActive(view) {
 
 const views = {
   async home() {
+    const site = await getSite();
     app().innerHTML = `
       <section class="hero-banner">
         <div class="hero-wrap">
@@ -101,8 +109,8 @@ const views = {
         </div>
         <div class="news-list" id="newsList"><div class="nrow"><span class="nt muted">Đang tải…</span></div></div>
         <div class="contact-row">
-          <a href="mailto:hotro@phongvan.vn">${ICON.mail} hotro@phongvan.vn</a>
-          <a href="tel:19000000">${ICON.phone} 1900 0000</a>
+          <a href="mailto:${esc(site.supportEmail || '')}">${ICON.mail} ${esc(site.supportEmail || '')}</a>
+          <a href="tel:${esc((site.hotline || '').replace(/\s/g, ''))}">${ICON.phone} ${esc(site.hotline || '')}</a>
         </div>
       </section>
 
@@ -370,21 +378,35 @@ function router() {
   setActive(view);
   (views[view] || views.home)();
 }
-function showDownload() {
+async function showDownload() {
+  const site = await getSite();
+  const dl = (url, cls, ico, label) => {
+    const has = url && url.trim();
+    return has
+      ? `<a class="btn ${cls}" href="${esc(url)}" target="_blank" rel="noopener">${ico} ${label}</a>`
+      : `<a class="btn ${cls}" style="opacity:.55;cursor:default" onclick="toast('Đang cập nhật')">${ico} ${label}</a>`;
+  };
   modal(`
     <h3>${ICON.mobile} Tải Phong Vân Online</h3>
     <p class="muted">Chọn nền tảng để tải/cài client. Tất cả dùng chung một máy chủ.</p>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.monitor} PC (Windows/macOS/Linux)</a>
-      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.mobile} Android (APK)</a>
-      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.apple} iOS</a>
-      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.coffee} Java Client</a>
+      ${dl(site.downloadPc, '', ICON.monitor, 'PC (Windows/macOS/Linux)')}
+      ${dl(site.downloadAndroid, '', ICON.mobile, 'Android (APK)')}
+      ${dl(site.downloadIos, 'sec', ICON.apple, 'iOS')}
+      ${dl(site.downloadJava, 'sec', ICON.coffee, 'Java Client')}
     </div>
-    <p class="muted" style="font-size:13px;margin-top:12px">Hiện tại tải/ build client từ mã nguồn theo hướng dẫn
-      <b>docs/BUILD_CLIENT.md</b>. Bản cài đặt sẵn sẽ được cập nhật sau.</p>
     <div class="row" style="margin-top:14px"><button class="btn sec" onclick="closeModal()">Đóng</button></div>`);
 }
 window.showDownload = showDownload;
+
+// Wire footer contact/social links from site config.
+async function applyFooter() {
+  const site = await getSite();
+  const fb = document.getElementById('fbLink');
+  if (fb) { fb.href = site.facebookUrl || '#'; fb.onclick = site.facebookUrl ? null : (e) => { e.preventDefault(); toast('Chưa cấu hình Facebook'); }; }
+  const guide = document.getElementById('guideLink');
+  if (guide) guide.onclick = () => { if (site.guideUrl) window.open(site.guideUrl, '_blank'); else go('news'); };
+}
 
 function playTrailer() {
   modal(`
@@ -408,4 +430,5 @@ document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () 
 window.go = go; window.closeModal = closeModal;
 renderUser();
 if (window.hydrateIcons) hydrateIcons();
+applyFooter();
 router();

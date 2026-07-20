@@ -297,6 +297,35 @@ const tabs = {
     };
   },
 
+  async site() {
+    const { site } = await api('/admin/site');
+    const f = (id, label, val, ph) => `<label>${label}</label><input id="${id}" value="${esc(val || '')}" placeholder="${ph || ''}"/>`;
+    app().innerHTML = `<h2>Liên hệ & Tải game</h2>
+      <div class="card" style="max-width:620px">
+        <p class="muted">Thông tin hỗ trợ và các đường link hiển thị ở footer / nút Tải game của trang chủ.</p>
+        <h3>Hỗ trợ</h3>
+        ${f('supportEmail', 'Email hỗ trợ', site.supportEmail, 'hotro@...')}
+        ${f('hotline', 'Số điện thoại / Hotline', site.hotline, '1900 ...')}
+        ${f('facebookUrl', 'Link Facebook (Fanpage)', site.facebookUrl, 'https://facebook.com/...')}
+        ${f('groupUrl', 'Link nhóm cộng đồng (Zalo/FB)', site.groupUrl, 'https://...')}
+        ${f('guideUrl', 'Link Hướng dẫn', site.guideUrl, 'Để trống = mở trang Tin tức')}
+        <h3 style="margin-top:18px">Link tải game</h3>
+        ${f('downloadPc', 'PC (Windows/macOS/Linux)', site.downloadPc, 'https://...')}
+        ${f('downloadAndroid', 'Android (APK)', site.downloadAndroid, 'https://...')}
+        ${f('downloadIos', 'iOS', site.downloadIos, 'https://...')}
+        ${f('downloadJava', 'Java client', site.downloadJava, 'https://...')}
+        <button class="btn" id="save" style="margin-top:16px">Lưu cấu hình</button>
+      </div>`;
+    document.getElementById('save').onclick = async () => {
+      const ids = ['supportEmail', 'hotline', 'facebookUrl', 'groupUrl', 'guideUrl',
+        'downloadPc', 'downloadAndroid', 'downloadIos', 'downloadJava'];
+      const body = {};
+      ids.forEach(i => body[i] = document.getElementById(i).value.trim());
+      await api('/admin/site', 'POST', body);
+      toast('Đã lưu cấu hình liên hệ & tải game');
+    };
+  },
+
   async packages() {
     const { packages } = await api('/admin/packages');
     app().innerHTML = `<h2>Gói nạp</h2><button class="btn" id="new">+ Thêm gói</button>
@@ -429,7 +458,7 @@ const TAB_TITLES = {
   items: 'Vật phẩm', monsters: 'Quái / Boss', maps: 'Máy chủ / Map', mail: 'Gửi vật phẩm',
   market: 'Chợ ingame', products: 'Webshop', sepay: 'Cổng nạp (SePay)', packages: 'Gói nạp',
   orders: 'Đơn nạp', news: 'Tin / Sự kiện', announce: 'Thông báo', giftcodes: 'Giftcode',
-  transactions: 'Lịch sử giao dịch',
+  site: 'Liên hệ & Tải game', transactions: 'Lịch sử giao dịch',
 };
 function show(tab) {
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));

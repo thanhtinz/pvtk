@@ -114,6 +114,10 @@ public final class WebServer {
             sendJson(ex, 200, Map.of("online", game.sessions().onlineCount(), "up", true));
             return;
         }
+        if (p.equals("/site") && m.equals("GET")) {
+            sendJson(ex, 200, Map.of("site", web.root().site));
+            return;
+        }
         if (p.equals("/news") && m.equals("GET")) {
             sendJson(ex, 200, Map.of("news", web.root().news));
             return;
@@ -258,6 +262,13 @@ public final class WebServer {
                     game.world().announce(msg);
                 }
                 sendJson(ex, 200, Map.of("ok", true, "online", game.sessions().onlineCount()));
+            }
+            case "/site" -> {
+                if (m.equals("GET")) {
+                    sendJson(ex, 200, Map.of("site", web.root().site));
+                } else {
+                    sendJson(ex, 200, saveSite(body(ex)));
+                }
             }
             case "/sepay" -> {
                 if (m.equals("GET")) {
@@ -574,6 +585,22 @@ public final class WebServer {
         }
         web.save();
         return Map.of("ok", true, "code", g.code);
+    }
+
+    private Map<String, Object> saveSite(Map<String, Object> b) {
+        var s = web.root().site;
+        // For contact fields keep the old value when blank; for links allow clearing.
+        s.supportEmail = orKeep(str(b, "supportEmail"), s.supportEmail);
+        s.hotline = orKeep(str(b, "hotline"), s.hotline);
+        if (b.containsKey("facebookUrl")) s.facebookUrl = str(b, "facebookUrl");
+        if (b.containsKey("groupUrl")) s.groupUrl = str(b, "groupUrl");
+        if (b.containsKey("guideUrl")) s.guideUrl = str(b, "guideUrl");
+        if (b.containsKey("downloadPc")) s.downloadPc = str(b, "downloadPc");
+        if (b.containsKey("downloadAndroid")) s.downloadAndroid = str(b, "downloadAndroid");
+        if (b.containsKey("downloadIos")) s.downloadIos = str(b, "downloadIos");
+        if (b.containsKey("downloadJava")) s.downloadJava = str(b, "downloadJava");
+        web.save();
+        return Map.of("ok", true);
     }
 
     private Map<String, Object> saveSepay(Map<String, Object> b) {
