@@ -45,7 +45,7 @@ function openItemPicker(onDone, multi = true) {
     selEl.innerHTML = '';
     selected.forEach(s => {
       const c = el(`<span class="chip"><img class="icon" style="width:20px;height:20px" src="${iconUrl(s.icon)}"/>
-        ${esc(s.name)} <b>x<input type="number" value="${s.count}" min="1" style="width:46px;padding:2px"/></b> ✕</span>`);
+        ${esc(s.name)} <b>x<input type="number" value="${s.count}" min="1" style="width:46px;padding:2px"/></b> ${ICON.close}</span>`);
       c.querySelector('input').onchange = e => s.count = Math.max(1, Number(e.target.value));
       c.onclick = e => { if (e.target.tagName !== 'INPUT') { selected.delete(s.itemId); refresh(); } };
       selEl.appendChild(c);
@@ -79,9 +79,9 @@ const tabs = {
   async dashboard() {
     const s = await api('/admin/stats');
     app().innerHTML = `<div class="stat-tiles">
-      ${card('Đang online', s.online, '🟢')}${card('Tài khoản', s.accounts, '👥')}${card('Vật phẩm', s.items, '🎒')}
-      ${card('Quái', s.monsters, '🐲')}${card('Giftcode', s.giftcodes, '🎁')}${card('Webshop', s.products, '🛒')}</div>
-      <div class="card" style="margin-top:18px"><h3>⚡ Thao tác nhanh</h3>
+      ${card('Đang online', s.online, ICON.dot)}${card('Tài khoản', s.accounts, ICON.users)}${card('Vật phẩm', s.items, ICON.bag)}
+      ${card('Quái', s.monsters, ICON.monster)}${card('Giftcode', s.giftcodes, ICON.gift)}${card('Webshop', s.products, ICON.cart)}</div>
+      <div class="card" style="margin-top:18px"><h3>${ICON.bolt} Thao tác nhanh</h3>
         <button class="btn red" id="rb">Reset Boss (respawn toàn bộ)</button></div>`;
     document.getElementById('rb').onclick = async () => { const r = await api('/admin/reset-boss', 'POST', {}); toast('Đã respawn ' + r.respawned + ' quái'); };
   },
@@ -103,10 +103,10 @@ const tabs = {
           <td>${u.online ? '<span class="tag on">ON</span>' : '<span class="tag off">OFF</span>'}</td>
           <td class="row"></td></tr>`);
         const act = tr.querySelector('td:last-child');
-        addBtn(act, '💰 Kinh tế', () => economyDialog(u, draw));
+        addBtn(act, ICON.coin + ' Kinh tế', () => economyDialog(u, draw));
         addBtn(act, u.banned ? 'Mở khóa' : 'Khóa', async () => { await api('/admin/users/ban', 'POST', { username: u.username, banned: !u.banned }); draw(); });
         addBtn(act, u.role === 'ADMIN' ? 'Bỏ admin' : 'Cấp admin', async () => { await api('/admin/users/role', 'POST', { username: u.username, role: u.role === 'ADMIN' ? 'USER' : 'ADMIN' }); draw(); });
-        addBtn(act, '🔑', async () => { const np = prompt('Mật khẩu mới cho ' + u.username); if (np) { await api('/admin/users/reset-password', 'POST', { username: u.username, newPassword: np }); toast('Đã đổi mật khẩu'); } });
+        addBtn(act, ICON.key, async () => { const np = prompt('Mật khẩu mới cho ' + u.username); if (np) { await api('/admin/users/reset-password', 'POST', { username: u.username, newPassword: np }); toast('Đã đổi mật khẩu'); } });
         t.appendChild(tr);
       });
     };
@@ -124,7 +124,7 @@ const tabs = {
         <label>Vật phẩm (chọn nhiều)</label>
         <div class="chips" id="chips"><span class="muted">Chưa chọn</span></div>
         <button class="btn sec small" id="pick" style="margin-top:8px">+ Chọn vật phẩm</button>
-        <div style="margin-top:16px"><button class="btn" id="send">📨 Gửi thư</button></div>
+        <div style="margin-top:16px"><button class="btn" id="send">${ICON.send} Gửi thư</button></div>
       </div>`;
     const drawChips = () => {
       const c = document.getElementById('chips');
@@ -154,7 +154,7 @@ const tabs = {
       const { items } = await api('/items?q=' + encodeURIComponent(document.getElementById('q').value || ''));
       const g = document.getElementById('g'); g.innerHTML = '';
       items.forEach(it => g.appendChild(el(`<div class="card row"><img class="icon" src="${iconUrl(it.icon)}"/>
-        <div><b>${esc(it.name)}</b><div class="muted">#${it.id} · type ${it.type} · ${it.price}💰</div></div></div>`)));
+        <div><b>${esc(it.name)}</b><div class="muted">#${it.id} · type ${it.type} · ${it.price} ${ICON.coin}</div></div></div>`)));
     };
     document.getElementById('q').oninput = draw; draw();
   },
@@ -198,7 +198,7 @@ const tabs = {
     products.forEach(p => {
       const c = el(`<div class="card row" style="justify-content:space-between">
         <div class="row"><img class="icon" src="${iconUrl(p.icon)}"/><div><b>${esc(p.name)}</b>
-          <div class="muted">${esc(p.itemName)} x${p.count} · ${p.price}💎</div></div></div>
+          <div class="muted">${esc(p.itemName)} x${p.count} · ${p.price} ${ICON.gem}</div></div></div>
         <button class="btn small red">Xóa</button></div>`);
       c.querySelector('button').onclick = async () => { await api('/admin/products/' + p.id, 'DELETE'); tabs.products(); };
       g.appendChild(c);
@@ -214,7 +214,7 @@ const tabs = {
     const l = document.getElementById('l');
     news.forEach(n => {
       const c = el(`<div class="card"><div class="row" style="justify-content:space-between">
-        <b>${n.type === 'event' ? '🎉' : '📰'} ${esc(n.title)}</b>
+        <b>${n.type === 'event' ? ICON.megaphone : ICON.news} ${esc(n.title)}</b>
         <button class="btn small red">Xóa</button></div><div class="muted" style="white-space:pre-wrap">${esc(n.body)}</div></div>`);
       c.querySelector('button').onclick = async () => { await api('/admin/news/' + n.id, 'DELETE'); tabs.news(); };
       l.appendChild(c);
@@ -236,7 +236,7 @@ const tabs = {
       <div class="card" style="max-width:560px">
         <p class="muted">Tin nhắn sẽ hiện ở kênh Hệ thống cho mọi người đang chơi.</p>
         <label>Nội dung</label><textarea id="msg" rows="3" placeholder="VD: Bảo trì lúc 22h, sự kiện x2 EXP cuối tuần!"></textarea>
-        <button class="btn" id="go" style="margin-top:14px">📢 Phát thông báo</button>
+        <button class="btn" id="go" style="margin-top:14px">${ICON.megaphone} Phát thông báo</button>
       </div>`;
     document.getElementById('go').onclick = async () => {
       const r = await api('/admin/announce', 'POST', { message: document.getElementById('msg').value });
@@ -254,7 +254,7 @@ const tabs = {
     listings.forEach(l => {
       const tr = el(`<tr><td>${l.listingId}</td><td>${esc(l.sellerName)}</td>
         <td><img class="icon" style="width:22px;height:22px" src="${iconUrl(l.itemId)}"/> ${esc(l.itemName)}</td>
-        <td>${l.count}</td><td>${l.price}💰</td><td><button class="btn small red">Gỡ</button></td></tr>`);
+        <td>${l.count}</td><td>${l.price} ${ICON.coin}</td><td><button class="btn small red">Gỡ</button></td></tr>`);
       tr.querySelector('button').onclick = async () => { await api('/admin/market/remove', 'POST', { listingId: l.listingId }); tabs.market(); };
       t.appendChild(tr);
     });
@@ -303,7 +303,7 @@ const tabs = {
       <div class="card" style="margin-top:12px"><table id="t"><tr>
         <th>Tên</th><th>Giá (VND)</th><th>Xu</th><th>Bonus</th><th>Bật</th><th></th></tr>
       ${packages.map(p => `<tr><td>${esc(p.name)}</td><td>${p.priceVnd.toLocaleString('vi')}</td>
-        <td>${p.xu}</td><td>${p.bonus}</td><td>${p.enabled ? '✅' : '❌'}</td>
+        <td>${p.xu}</td><td>${p.bonus}</td><td>${p.enabled ? ICON.check : ICON.close}</td>
         <td><button class="btn small red" data-id="${p.id}">Xóa</button></td></tr>`).join('')}</table></div>`;
     document.getElementById('new').onclick = () => packageDialog();
     app().querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => { await api('/admin/packages/' + b.dataset.id, 'DELETE'); tabs.packages(); });
@@ -323,8 +323,8 @@ const tabs = {
   async economy() {
     const e = await api('/admin/economy');
     app().innerHTML = `<h2>Kinh tế toàn server</h2><div class="grid cards">
-      ${card('Tổng vàng', e.totalGold)}${card('Tổng số dư (💎)', e.totalBalance)}${card('Tài khoản', e.accounts)}</div>
-      <p class="muted" style="margin-top:12px">Điều chỉnh tiền từng người ở tab <b>Người chơi → 💰 Kinh tế</b>.</p>`;
+      ${card('Tổng vàng', e.totalGold)}${card('Tổng số dư (${ICON.gem})', e.totalBalance)}${card('Tài khoản', e.accounts)}</div>
+      <p class="muted" style="margin-top:12px">Điều chỉnh tiền từng người ở tab <b>Người chơi → ${ICON.coin} Kinh tế</b>.</p>`;
   },
 };
 
@@ -333,9 +333,9 @@ function addBtn(parent, label, fn) { const b = el(`<button class="btn small sec"
 
 function economyDialog(u, after) {
   modal(`<h3>Kinh tế: ${esc(u.username)}</h3>
-    <p class="muted">Vàng: ${u.gold} · Số dư: ${u.balance}💎. Nhập số âm để trừ.</p>
+    <p class="muted">Vàng: ${u.gold} · Số dư: ${u.balance} ${ICON.gem}. Nhập số âm để trừ.</p>
     <label>+/- Vàng</label><input id="dg" type="number" value="0"/>
-    <label>+/- Số dư (💎)</label><input id="db" type="number" value="0"/>
+    <label>+/- Số dư (${ICON.gem})</label><input id="db" type="number" value="0"/>
     <div class="row" style="margin-top:14px"><button class="btn" id="ok">Áp dụng</button>
       <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
   document.getElementById('ok').onclick = async () => {
@@ -350,7 +350,7 @@ function giftcodeDialog() {
   modal(`<h3>Tạo Giftcode</h3>
     <label>Mã</label><input id="code"/>
     <label>Thưởng vàng</label><input id="g" type="number" value="0"/>
-    <label>Thưởng số dư (💎)</label><input id="b" type="number" value="0"/>
+    <label>Thưởng số dư (${ICON.gem})</label><input id="b" type="number" value="0"/>
     <label>Số lượt dùng (0 = không giới hạn)</label><input id="m" type="number" value="100"/>
     <label>Vật phẩm</label><div class="chips" id="chips"><span class="muted">Chưa chọn</span></div>
     <button class="btn sec small" id="pick" style="margin-top:8px">+ Chọn vật phẩm</button>
@@ -374,7 +374,7 @@ function productDialog() {
     <label>Vật phẩm</label><div class="chips" id="chips"><span class="muted">Chưa chọn</span></div>
     <button class="btn sec small" id="pick" style="margin-top:8px">+ Chọn vật phẩm</button>
     <label>Số lượng</label><input id="count" type="number" value="1"/>
-    <label>Giá (💎)</label><input id="price" type="number" value="100"/>
+    <label>Giá (${ICON.gem})</label><input id="price" type="number" value="100"/>
     <div class="row" style="margin-top:14px"><button class="btn" id="ok">Lưu</button>
       <button class="btn sec" onclick="closeModal()">Hủy</button></div>`);
   document.getElementById('pick').onclick = () => openItemPicker(sel => {
@@ -446,4 +446,5 @@ if (whoName) whoName.textContent = localStorage.getItem('pvtk_name') || 'admin';
 const menuBtn = document.getElementById('menuBtn');
 if (menuBtn) menuBtn.onclick = () => document.getElementById('sidebar').classList.toggle('open');
 
+if (window.hydrateIcons) hydrateIcons();
 show('dashboard');

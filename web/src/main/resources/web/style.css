@@ -80,7 +80,7 @@ header.site .spacer { flex: 1; }
   border-bottom: 1px solid var(--line);
 }
 .hero::before, .hero::after {
-  content: "⚔"; position: absolute; font-size: 260px; color: rgba(232,200,119,.04);
+  content: ""; position: absolute; font-size: 260px; color: rgba(232,200,119,.04);
   top: 40px; pointer-events: none;
 }
 .hero::before { left: 4%; transform: rotate(-18deg); }
@@ -347,7 +347,7 @@ body.portal .badge18 {
   color: #146b62; font-size: 40px; margin: 0 0 22px; letter-spacing: 1px;
   text-shadow: 0 2px 6px rgba(255,255,255,.6);
 }
-.cal::before, .cal::after { content: "🪷"; font-size: 24px; margin: 0 14px; vertical-align: middle; }
+.cal::before, .cal::after { content: ""; }
 
 /* news tabs + list (portal) */
 .news-tabs { display: flex; gap: 6px; border-bottom: 2px solid #b9d8d1; margin-bottom: 6px; flex-wrap: wrap; }

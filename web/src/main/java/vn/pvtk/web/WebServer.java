@@ -173,7 +173,7 @@ public final class WebServer {
             }
             a.balance += amount;
             game.accounts().save();
-            web.addTx(a.username, "topup", "Nạp " + amount + " 💎", amount, "balance", System.currentTimeMillis());
+            web.addTx(a.username, "topup", "Nạp " + amount + " Xu", amount, "balance", System.currentTimeMillis());
             sendJson(ex, 200, Map.of("balance", a.balance));
             return;
         }
@@ -495,7 +495,7 @@ public final class WebServer {
         }
         game.accounts().save();
         web.addTx(username, "admin_economy",
-                "Admin chỉnh: " + (deltaGold != 0 ? deltaGold + " vàng " : "") + (deltaBalance != 0 ? deltaBalance + " 💎" : ""),
+                "Admin chỉnh: " + (deltaGold != 0 ? deltaGold + " vàng " : "") + (deltaBalance != 0 ? deltaBalance + " Xu" : ""),
                 deltaGold + deltaBalance, "mixed", System.currentTimeMillis());
         return Map.of("ok", true, "gold", a.gold, "balance", a.balance);
     }

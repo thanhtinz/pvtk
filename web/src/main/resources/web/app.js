@@ -59,7 +59,7 @@ function renderUser() {
   document.querySelectorAll('.auth-only').forEach(e => e.classList.toggle('hidden', !T.token));
   if (T.token) {
     box.innerHTML = `${T.role === 'ADMIN' ? '<a class="btn small" href="/admin.html">Admin</a>' : ''}
-      <span>👤 ${T.name}</span><a class="btn small sec" id="logoutBtn">Thoát</a>`;
+      <span>${ICON.user} ${T.name}</span><a class="btn small sec" id="logoutBtn">Thoát</a>`;
     document.getElementById('logoutBtn').onclick = logout;
   } else {
     box.innerHTML = `<a class="btn small" id="loginBtn">Đăng nhập</a>
@@ -101,8 +101,8 @@ const views = {
         </div>
         <div class="news-list" id="newsList"><div class="nrow"><span class="nt muted">Đang tải…</span></div></div>
         <div class="contact-row">
-          <a href="mailto:hotro@phongvan.vn">✉️ hotro@phongvan.vn</a>
-          <a href="tel:19000000">📞 1900 0000</a>
+          <a href="mailto:hotro@phongvan.vn">${ICON.mail} hotro@phongvan.vn</a>
+          <a href="tel:19000000">${ICON.phone} 1900 0000</a>
         </div>
       </section>
 
@@ -192,9 +192,9 @@ const views = {
     const list = document.getElementById('list');
     if (!news.length) list.innerHTML = '<p class="muted">Chưa có tin tức.</p>';
     news.forEach(n => {
-      const cd = n.type === 'event' && n.endAt ? `<div class="tag" data-end="${n.endAt}" style="margin-top:6px">⏳ …</div>` : '';
+      const cd = n.type === 'event' && n.endAt ? `<div class="tag" data-end="${n.endAt}" style="margin-top:6px">${ICON.clock} …</div>` : '';
       list.appendChild(el(`<div class="card">
-        <h3>${n.type === 'event' ? '🎉 ' : '📰 '}${esc(n.title)}</h3>
+        <h3>${n.type === 'event' ? ICON.megaphone + ' ' : ICON.news + ' '}${esc(n.title)}</h3>
         <div class="muted" style="font-size:12px">${new Date(n.date).toLocaleString('vi')}</div>
         <p style="white-space:pre-wrap">${esc(n.body)}</p>${cd}</div>`));
     });
@@ -222,7 +222,7 @@ const views = {
       const c = el(`<div class="card row" style="justify-content:space-between">
         <div class="row"><img class="icon" src="${iconUrl(p.icon)}"/>
           <div><b>${esc(p.name)}</b><div class="muted">${esc(p.itemName)} x${p.count}</div></div></div>
-        <div style="text-align:right"><div class="tag">${p.price} 💎</div><br/>
+        <div style="text-align:right"><div class="tag">${p.price} ${ICON.gem}</div><br/>
           <button class="btn small" style="margin-top:6px">Mua</button></div>`);
       c.querySelector('button').onclick = async () => {
         if (!T.token) return showLogin(false);
@@ -278,7 +278,7 @@ const views = {
       <div class="grid cards">
         <div class="card"><h3>Thông tin</h3>
           <p>Tài khoản: <b>${esc(me.username)}</b> ${me.role === 'ADMIN' ? '<span class="tag admin">ADMIN</span>' : ''}</p>
-          <p>Số dư Xu (web): <b>${me.balance}</b> 💎</p>
+          <p>Số dư Xu (web): <b>${me.balance}</b> ${ICON.gem}</p>
           <p>Tiền nạp trong game: <b>${me.coin ?? 0}</b></p>
           <p>Vàng trong game: <b>${me.gold}</b></p>
           <p class="muted" style="font-size:13px">Đổi Xu → Tiền nạp: đăng nhập game và gõ lệnh <b>convert &lt;số xu&gt;</b>.</p>
@@ -323,7 +323,7 @@ function tickCountdowns() {
   const upd = () => {
     const now = Date.now();
     document.querySelectorAll('[data-end]').forEach(e => {
-      e.textContent = '⏳ Còn lại: ' + fmtDur(Number(e.dataset.end) - now);
+      e.innerHTML = ICON.clock + ' Còn lại: ' + fmtDur(Number(e.dataset.end) - now);
     });
   };
   upd(); _cdTimer = setInterval(upd, 1000);
@@ -343,7 +343,7 @@ async function startOrder(packageId) {
         <tr><th>Số tiền</th><td><b>${o.amountVnd.toLocaleString('vi')} đ</b></td></tr>
         <tr><th>Nội dung CK</th><td><b style="color:var(--gold)">${esc(o.content)}</b></td></tr>
       </table>
-      <p class="muted" id="ost">⏳ Đang chờ thanh toán... (tự cộng Xu khi nhận được tiền)</p>
+      <p class="muted" id="ost">${ICON.clock} Đang chờ thanh toán... (tự cộng Xu khi nhận được tiền)</p>
       <div class="row"><button class="btn sec" onclick="stopPoll();closeModal()">Đóng</button></div>`);
     if (_pollTimer) clearInterval(_pollTimer);
     _pollTimer = setInterval(async () => {
@@ -351,7 +351,7 @@ async function startOrder(packageId) {
         const s = await api('/topup/order/' + o.orderId);
         if (s.status === 'paid') {
           stopPoll();
-          document.getElementById('ost').innerHTML = '✅ Đã nhận thanh toán! Số dư: <b>' + s.balance + ' Xu</b>';
+          document.getElementById('ost').innerHTML = ICON.check + ' Đã nhận thanh toán! Số dư: <b>' + s.balance + ' Xu</b>';
           toast('Nạp thành công +' + s.xu + ' Xu!');
         }
       } catch (e) { /* keep polling */ }
@@ -372,13 +372,13 @@ function router() {
 }
 function showDownload() {
   modal(`
-    <h3>⬇ Tải Phong Vân Online</h3>
+    <h3>${ICON.mobile} Tải Phong Vân Online</h3>
     <p class="muted">Chọn nền tảng để tải/cài client. Tất cả dùng chung một máy chủ.</p>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">💻 PC (Windows/macOS/Linux)</a>
-      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">🤖 Android (APK)</a>
-      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">🍎 iOS</a>
-      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">☕ Java Client</a>
+      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.monitor} PC (Windows/macOS/Linux)</a>
+      <a class="btn" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.mobile} Android (APK)</a>
+      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.apple} iOS</a>
+      <a class="btn sec" href="https://github.com/thanhtinz/pvtk" target="_blank" rel="noopener">${ICON.coffee} Java Client</a>
     </div>
     <p class="muted" style="font-size:13px;margin-top:12px">Hiện tại tải/ build client từ mã nguồn theo hướng dẫn
       <b>docs/BUILD_CLIENT.md</b>. Bản cài đặt sẵn sẽ được cập nhật sau.</p>
@@ -407,4 +407,5 @@ document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () 
 }));
 window.go = go; window.closeModal = closeModal;
 renderUser();
+if (window.hydrateIcons) hydrateIcons();
 router();
