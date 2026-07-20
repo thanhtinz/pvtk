@@ -23,3 +23,12 @@ tasks.register<JavaExec>("exportAnim") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("vn.pvtk.tools.SprAnimationExporter")
 }
+
+// Decodes ui/*.ui screen layouts and paints each widget tree as a wireframe PNG.
+tasks.register<JavaExec>("exportUi") {
+    group = "verification"
+    description = "Render original .ui screen layouts to wireframe PNGs"
+    workingDir = rootProject.projectDir
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("vn.pvtk.tools.UiLayoutExporter")
+}

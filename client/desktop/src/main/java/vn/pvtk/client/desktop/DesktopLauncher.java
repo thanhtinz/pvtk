@@ -20,6 +20,7 @@ public final class DesktopLauncher {
         cfg.host = arg(args, "--host", cfg.host);
         cfg.port = Integer.parseInt(arg(args, "--port", String.valueOf(cfg.port)));
         cfg.username = arg(args, "--user", "PC-" + (System.nanoTime() % 1000));
+        cfg.autoBattle = "1".equals(System.getenv("PVTK_AUTO_BATTLE"));
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Phong Vân (PVTK)");

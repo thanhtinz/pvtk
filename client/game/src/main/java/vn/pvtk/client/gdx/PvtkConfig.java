@@ -7,6 +7,8 @@ public final class PvtkConfig {
     public int port = 30000;
     public String username = "Guest";
     public int tileSize = 24;
+    /** Demo/headless mode: auto-engage nearby monsters (for screenshots and smoke tests). */
+    public boolean autoBattle = false;
 
     public PvtkConfig() {
     }

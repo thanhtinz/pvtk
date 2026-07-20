@@ -89,9 +89,53 @@ public final class PvtkGame extends ApplicationAdapter {
         }, "pvtk-connect").start();
     }
 
+    private float autoBattleTimer;
+
+    /** Demo mode: periodically engage the nearest monster and submit attack plans. */
+    private void driveAutoBattle() {
+        if (!config.autoBattle) {
+            return;
+        }
+        autoBattleTimer += Gdx.graphics.getDeltaTime();
+        if (autoBattleTimer < 1.2f) {
+            return;
+        }
+        autoBattleTimer = 0f;
+        var battle = client.state().battle();
+        if (battle != null) {
+            battle.combatants().stream().filter(u -> u.side() == 1 && u.hp() > 0)
+                    .findFirst().ifPresent(enemy -> client.battlePlan(battle.round(), enemy.index(), 0));
+            return;
+        }
+        Entity self = client.state().self();
+        if (self == null) {
+            return;
+        }
+        Entity nearest = null;
+        int best = Integer.MAX_VALUE;
+        for (Entity e : client.state().others()) {
+            if (!e.isMonster()) {
+                continue;
+            }
+            int d = Math.abs(e.x - self.x) + Math.abs(e.y - self.y);
+            if (d < best) {
+                best = d;
+                nearest = e;
+            }
+        }
+        if (nearest != null) {
+            if (best > 1) {
+                client.move(nearest.x, nearest.y, 0);
+            } else {
+                client.enterBattle(nearest.id);
+            }
+        }
+    }
+
     @Override
     public void render() {
         animTime += Gdx.graphics.getDeltaTime();
+        driveAutoBattle();
         camera.update();
         Gdx.gl.glClearColor(0.07f, 0.08f, 0.10f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
