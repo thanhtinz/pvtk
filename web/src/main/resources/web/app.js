@@ -80,9 +80,9 @@ const views = {
   async home() {
     app().innerHTML = `
       <section class="hero-banner">
-        <div class="hero-art">
-          <img class="hero-logo-img" src="/img/logo-dragon.png" alt="Phong Vân Truyền Kỳ"/>
-          <img class="hero-tag" src="/img/tag-10nam.png" alt="10 Năm Kinh Điển · Huyền Thoại Turn-Base"/>
+        <div class="hero-wrap">
+          <img class="hero-banner-img" src="/img/hero-banner.jpg" alt="Phong Vân Truyền Kỳ · 10 Năm Kinh Điển"/>
+          <a class="hero-play" onclick="playTrailer()" title="Xem trailer"><img src="/img/btn-play.png" alt="▶"/></a>
         </div>
       </section>
 
@@ -121,7 +121,12 @@ const views = {
 
       <section class="portal-sec">
         <img class="cal-img" src="/img/title-dacsac.png" alt="Đặc Sắc"/>
-        <div class="feat-grid" id="featGrid"></div>
+        <div class="feat-carousel">
+          <a class="char-arrow left" id="featPrev"><img src="/img/arrow-left.png" alt="‹"/></a>
+          <img class="feat-slide" id="featImg" src="/img/feat-1.jpg" alt="Đặc sắc"/>
+          <a class="char-arrow right" id="featNext"><img src="/img/arrow-right.png" alt="›"/></a>
+        </div>
+        <div class="feat-dots" id="featDots"></div>
       </section>`;
 
     // Nhân Vật carousel: NAM/NỮ rosters, prev/next arrows.
@@ -143,16 +148,22 @@ const views = {
     document.getElementById('genNu').onclick = () => { gender = 'nu'; ci = 0; paint(); };
     paint();
 
-    // Features
-    const fg = document.getElementById('featGrid');
-    [['⚔️', 'Combat Turn-Base', 'Đánh quái, PK, đấu trường, chiến tranh bang hội theo lượt.'],
-     ['🛡️', '9 Class Tranh Hùng', 'Trang bị, kỹ năng, rơi đồ theo dữ liệu gốc của game.'],
-     ['🤝', 'Xã hội phong phú', 'Bang hội, tổ đội, bạn bè, chợ giao dịch, hòm thư.'],
-     ['🐾', 'Pet & Hộ tống', 'Thú cưng đi theo, nhiệm vụ tiêu xa, săn boss.'],
-     ['📱', 'Đa nền tảng', 'Chơi trên PC · Android · iOS · Java, chung một máy chủ.'],
-     ['🏆', 'Đua TOP nhận thưởng', 'Bảng xếp hạng cao thủ, sự kiện nạp & tích lũy.']]
-      .forEach(([i, h, b]) => fg.appendChild(el(
-        `<div class="feat"><div class="fi">${i}</div><h3>${h}</h3><p>${b}</p></div>`)));
+    // Đặc Sắc carousel of feature banners.
+    const feats = ['/img/feat-1.jpg', '/img/feat-2.jpg', '/img/feat-3.jpg', '/img/feat-4.jpg'];
+    let fidx = 0;
+    const featImg = document.getElementById('featImg');
+    const featDots = document.getElementById('featDots');
+    feats.forEach((_, i) => featDots.appendChild(el(`<span class="dot${i === 0 ? ' on' : ''}" data-i="${i}"></span>`)));
+    const paintFeat = () => {
+      fidx = ((fidx % feats.length) + feats.length) % feats.length;
+      featImg.src = feats[fidx];
+      featDots.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === fidx));
+    };
+    document.getElementById('featPrev').onclick = () => { fidx--; paintFeat(); };
+    document.getElementById('featNext').onclick = () => { fidx++; paintFeat(); };
+    featDots.querySelectorAll('.dot').forEach(d => d.onclick = () => { fidx = +d.dataset.i; paintFeat(); });
+    if (window._featTimer) clearInterval(window._featTimer);
+    window._featTimer = setInterval(() => { fidx++; paintFeat(); }, 4500);
 
     // News with client-side tab filtering.
     let allNews = [];
@@ -347,7 +358,10 @@ async function startOrder(packageId) {
     }, 3000);
   } catch (e) { toast(e.message); }
 }
-function stopPoll() { if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; } }
+function stopPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  if (window._featTimer) { clearInterval(window._featTimer); window._featTimer = null; }
+}
 window.startOrder = startOrder; window.stopPoll = stopPoll;
 
 function router() {
@@ -371,6 +385,16 @@ function showDownload() {
     <div class="row" style="margin-top:14px"><button class="btn sec" onclick="closeModal()">Đóng</button></div>`);
 }
 window.showDownload = showDownload;
+
+function playTrailer() {
+  modal(`
+    <h3>▶ Trailer Phong Vân Online</h3>
+    <div style="background:#000;border-radius:10px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#c9b98a">
+      Trailer sắp ra mắt — theo dõi Fanpage để xem sớm nhất!
+    </div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn sec" onclick="closeModal()">Đóng</button></div>`);
+}
+window.playTrailer = playTrailer;
 
 window.addEventListener('hashchange', router);
 document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => go(a.dataset.view)));

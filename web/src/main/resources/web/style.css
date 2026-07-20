@@ -456,3 +456,31 @@ body.portal header.site nav a { padding: 8px 11px; font-size: 14px; white-space:
   .char-arrow img { height: 46px; }
   .gender-toggle img { width: 42px; }
 }
+
+/* ---- hero banner + Đặc Sắc carousel (real banners) ---- */
+.hero-banner { padding: 30px 16px 44px; }
+.hero-wrap { position: relative; max-width: 1080px; margin: 0 auto; }
+.hero-banner-img {
+  width: 100%; height: auto; display: block; border-radius: 16px;
+  border: 3px solid var(--gold-deep); box-shadow: 0 16px 40px rgba(0,0,0,.35);
+}
+.hero-play {
+  position: absolute; left: 50%; top: 56%; transform: translate(-50%,-50%);
+  cursor: pointer; transition: transform .15s, filter .15s;
+}
+.hero-play img { width: 84px; height: auto; display: block; filter: drop-shadow(0 4px 12px rgba(0,0,0,.5)); }
+.hero-play:hover { transform: translate(-50%,-50%) scale(1.1); filter: brightness(1.1); }
+@media (max-width: 600px){ .hero-play img { width: 58px; } }
+
+.feat-carousel {
+  position: relative; max-width: 860px; margin: 0 auto; display: flex; align-items: center; justify-content: center;
+}
+.feat-slide {
+  width: 100%; max-width: 780px; height: auto; display: block; border-radius: 14px;
+  border: 2px solid var(--gold-deep); box-shadow: 0 12px 30px rgba(20,60,55,.22);
+}
+.feat-carousel .char-arrow.left { left: -4px; }
+.feat-carousel .char-arrow.right { right: -4px; }
+.feat-dots { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.feat-dots .dot { width: 12px; height: 12px; border-radius: 50%; background: #b7d3cc; cursor: pointer; transition: .15s; border: 1px solid #8fb3ac; }
+.feat-dots .dot.on { background: var(--gold-deep); border-color: var(--gold); transform: scale(1.15); }
