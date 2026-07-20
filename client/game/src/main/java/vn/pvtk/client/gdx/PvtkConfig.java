@@ -9,6 +9,8 @@ public final class PvtkConfig {
     public int tileSize = 24;
     /** Demo/headless mode: auto-engage nearby monsters (for screenshots and smoke tests). */
     public boolean autoBattle = false;
+    /** If > 0, render this ui/&lt;id&gt;.ui screen with real art instead of connecting (UI preview). */
+    public int uiPreview = 0;
 
     public PvtkConfig() {
     }

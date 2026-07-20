@@ -21,6 +21,10 @@ public final class DesktopLauncher {
         cfg.port = Integer.parseInt(arg(args, "--port", String.valueOf(cfg.port)));
         cfg.username = arg(args, "--user", "PC-" + (System.nanoTime() % 1000));
         cfg.autoBattle = "1".equals(System.getenv("PVTK_AUTO_BATTLE"));
+        String preview = System.getenv("PVTK_UI_PREVIEW");
+        if (preview != null && preview.matches("\\d+")) {
+            cfg.uiPreview = Integer.parseInt(preview);
+        }
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Phong Vân (PVTK)");

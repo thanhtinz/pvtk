@@ -50,6 +50,10 @@ public final class PvtkGame extends ApplicationAdapter {
     private SprAnimator hitFx;
     private final List<float[]> effects = new java.util.ArrayList<>(); // {worldX, worldY, elapsed}
 
+    // UI preview (renders a single .ui screen with real art, no networking).
+    private UiStage uiStage;
+    private vn.pvtk.protocol.ui.UiScreen uiScreen;
+
     public PvtkGame(PvtkConfig config) {
         this.config = config;
     }
@@ -61,6 +65,19 @@ public final class PvtkGame extends ApplicationAdapter {
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = GameFont.load(16);
+
+        // UI preview mode: render a single ui/<id>.ui screen with real art, no networking.
+        if (config.uiPreview > 0) {
+            uiStage = new UiStage(Gdx.graphics.getHeight());
+            try {
+                var fh = Assets.resolve("ui/" + config.uiPreview + ".ui");
+                uiScreen = vn.pvtk.protocol.ui.UiScreen.parse(fh.readBytes());
+            } catch (Exception e) {
+                status = "ui load failed: " + e.getMessage();
+            }
+            return;
+        }
+
         // Real game sprites decoded from the original common/1.{png,fr} sheet.
         atlas = SpriteAtlas.tryLoad("common/1");
         // A self-contained hit/skill effect .spr, decoded from the original jar data.
@@ -87,6 +104,22 @@ public final class PvtkGame extends ApplicationAdapter {
                 status = "connect failed: " + e.getMessage();
             }
         }, "pvtk-connect").start();
+    }
+
+    /** Renders a single .ui screen with real art (preview/screenshot mode). */
+    private void renderUiPreview() {
+        camera.update();
+        Gdx.gl.glClearColor(0.08f, 0.09f, 0.12f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        if (uiScreen != null) {
+            uiStage.draw(batch, font, uiScreen, 10, 10);
+        } else {
+            font.setColor(Color.SALMON);
+            font.draw(batch, status, 20, Gdx.graphics.getHeight() - 20);
+        }
+        batch.end();
     }
 
     private float autoBattleTimer;
@@ -134,6 +167,10 @@ public final class PvtkGame extends ApplicationAdapter {
 
     @Override
     public void render() {
+        if (config.uiPreview > 0) {
+            renderUiPreview();
+            return;
+        }
         animTime += Gdx.graphics.getDeltaTime();
         driveAutoBattle();
         camera.update();
