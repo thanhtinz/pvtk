@@ -397,8 +397,14 @@ function playTrailer() {
 window.playTrailer = playTrailer;
 
 window.addEventListener('hashchange', router);
-document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => go(a.dataset.view)));
-['downloadBtn2'].forEach(id => { const b = document.getElementById(id); if (b) b.onclick = showDownload; });
+// Mobile hamburger menu.
+const headerMenu = document.getElementById('headerMenu');
+const hamburger = document.getElementById('hamburger');
+if (hamburger) hamburger.onclick = () => headerMenu.classList.toggle('open');
+document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => {
+  go(a.dataset.view);
+  if (headerMenu) headerMenu.classList.remove('open'); // close after picking on mobile
+}));
 window.go = go; window.closeModal = closeModal;
 renderUser();
 router();
