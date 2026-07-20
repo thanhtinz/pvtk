@@ -80,15 +80,14 @@ const views = {
   async home() {
     app().innerHTML = `
       <section class="hero-banner">
-        <div class="hero-dragon">🐉</div>
-        <div class="hero-logo">PHONG VÂN<small>TRUYỀN KỲ</small></div>
+        <img class="hero-logo-img" src="/img/logo-dragon.png" alt="Phong Vân Truyền Kỳ"/>
         <div class="hero-sub">⚔ Huyền Thoại Turn-Base · 10 Năm Kinh Điển</div>
       </section>
 
-      <div class="action-row">
-        <a class="act-btn jade" onclick="showDownload()"><span class="ai">⬇️</span><div>TẢI<br>GAME</div></a>
-        <a class="act-btn nap" onclick="go('topup')"><span class="ai">💰</span><div>NẠP THẺ</div></a>
-        <a class="act-btn jade" onclick="go('giftcode')"><span class="ai">🎁</span><div>NHẬN<br>GIFTCODE</div></a>
+      <div class="action-row imgs">
+        <a class="img-btn" onclick="showDownload()" title="Tải game"><img src="/img/btn-tai.png" alt="Tải game"/></a>
+        <a class="img-btn big" onclick="go('topup')" title="Nạp thẻ"><img src="/img/btn-nap.jpg" alt="Nạp thẻ"/></a>
+        <a class="img-btn" onclick="go('giftcode')" title="Nhận giftcode"><img src="/img/btn-gift.jpg" alt="Nhận giftcode"/></a>
       </div>
 
       <section class="portal-sec">
@@ -106,7 +105,7 @@ const views = {
       </section>
 
       <section class="portal-sec">
-        <h2 class="cal">Đặc Sắc</h2>
+        <img class="cal-img" src="/img/title-dacsac.png" alt="Đặc Sắc"/>
         <div class="feat-grid" id="featGrid"></div>
       </section>`;
 

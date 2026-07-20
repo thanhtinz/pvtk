@@ -868,6 +868,9 @@ public final class WebServer {
         if (path.endsWith(".css")) return "text/css; charset=utf-8";
         if (path.endsWith(".svg")) return "image/svg+xml";
         if (path.endsWith(".png")) return "image/png";
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        if (path.endsWith(".webp")) return "image/webp";
+        if (path.endsWith(".gif")) return "image/gif";
         return "application/octet-stream";
     }
 
