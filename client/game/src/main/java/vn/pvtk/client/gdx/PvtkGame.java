@@ -54,6 +54,11 @@ public final class PvtkGame extends ApplicationAdapter {
     private UiStage uiStage;
     private vn.pvtk.protocol.ui.UiScreen uiScreen;
 
+    // Entry flow: login/register screen shown until auth succeeds.
+    private LoginUi loginUi;
+    private volatile boolean loggedIn;
+    private volatile boolean authPending;
+
     public PvtkGame(PvtkConfig config) {
         this.config = config;
     }
@@ -78,9 +83,23 @@ public final class PvtkGame extends ApplicationAdapter {
             return;
         }
 
-        // Real game sprites decoded from the original common/1.{png,fr} sheet.
+        // Entry flow: show the login/register screen first, connect in the
+        // background, and only enter the world once auth succeeds.
+        loginUi = new LoginUi(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        client = new GameClient(new RenderThreadListener());
+        Gdx.input.setInputProcessor(new LoginProcessor());
+        new Thread(() -> {
+            try {
+                client.connect(config.host, config.port);
+            } catch (IOException e) {
+                Gdx.app.postRunnable(() -> loginUi.setStatus("Không kết nối được máy chủ"));
+            }
+        }, "pvtk-connect").start();
+    }
+
+    /** Loads world visuals and switches from the login screen into the game. */
+    private void enterGame() {
         atlas = SpriteAtlas.tryLoad("common/1");
-        // A self-contained hit/skill effect .spr, decoded from the original jar data.
         for (int id : new int[]{4006, 4008, 4030, 4003, 4001, 4002}) {
             SprAnimator a = SprAnimator.load(id);
             if (a != null && a.isRenderable()) {
@@ -91,19 +110,38 @@ public final class PvtkGame extends ApplicationAdapter {
                 a.dispose();
             }
         }
-
-        client = new GameClient(new RenderThreadListener());
         Gdx.input.setInputProcessor(new TapHandler());
+        client.requestBag();
+        loggedIn = true;
+    }
 
-        new Thread(() -> {
-            try {
-                client.connect(config.host, config.port);
-                client.login(config.username, "", 0);
-                client.requestBag();
-            } catch (IOException e) {
-                status = "connect failed: " + e.getMessage();
-            }
-        }, "pvtk-connect").start();
+    /** Renders the login/register entry screen (real splash + buttons). */
+    private void renderLogin() {
+        camera.update();
+        Gdx.gl.glClearColor(0.05f, 0.06f, 0.09f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        loginUi.draw(batch, font);
+        batch.end();
+    }
+
+    /** Submits a login or registration; the result arrives via onLoginResult. */
+    private void submitAuth(boolean register) {
+        if (authPending) {
+            return;
+        }
+        if (!client.isConnected()) {
+            loginUi.setStatus("Đang kết nối máy chủ...");
+            return;
+        }
+        authPending = true;
+        loginUi.setStatus(register ? "Đang đăng ký..." : "Đang đăng nhập...");
+        if (register) {
+            client.register(loginUi.username(), loginUi.password(), 0);
+        } else {
+            client.login(loginUi.username(), loginUi.password(), 0);
+        }
     }
 
     /** Renders a single .ui screen with real art (preview/screenshot mode). */
@@ -169,6 +207,10 @@ public final class PvtkGame extends ApplicationAdapter {
     public void render() {
         if (config.uiPreview > 0) {
             renderUiPreview();
+            return;
+        }
+        if (!loggedIn) {
+            renderLogin();
             return;
         }
         animTime += Gdx.graphics.getDeltaTime();
@@ -417,6 +459,9 @@ public final class PvtkGame extends ApplicationAdapter {
         if (hitFx != null) {
             hitFx.dispose();
         }
+        if (loginUi != null) {
+            loginUi.dispose();
+        }
         shapes.dispose();
         batch.dispose();
         font.dispose();
@@ -428,7 +473,17 @@ public final class PvtkGame extends ApplicationAdapter {
             Gdx.app.postRunnable(() -> status = "connected");
         }
         @Override public void onLoginResult(boolean ok, String message) {
-            Gdx.app.postRunnable(() -> status = ok ? "in game" : ("login failed: " + message));
+            Gdx.app.postRunnable(() -> {
+                authPending = false;
+                status = ok ? "in game" : ("login failed: " + message);
+                if (ok) {
+                    if (!loggedIn) {
+                        enterGame();
+                    }
+                } else if (loginUi != null) {
+                    loginUi.setStatus(message == null || message.isEmpty() ? "Đăng nhập thất bại" : message);
+                }
+            });
         }
         @Override public void onChat(ChatBroadcast chat) {
             Gdx.app.postRunnable(() -> pushChat(chat.fromName() + ": " + chat.text()));
@@ -443,6 +498,24 @@ public final class PvtkGame extends ApplicationAdapter {
         }
         @Override public void onDisconnected(String reason) {
             Gdx.app.postRunnable(() -> status = "disconnected: " + reason);
+        }
+    }
+
+    /** Input for the login/register screen: taps drive buttons, keys edit fields. */
+    private final class LoginProcessor extends InputAdapter {
+        @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            LoginUi.Action a = loginUi.tap(screenX, screenY);
+            if (a == LoginUi.Action.LOGIN) {
+                submitAuth(false);
+            } else if (a == LoginUi.Action.REGISTER) {
+                submitAuth(true);
+            }
+            return true;
+        }
+
+        @Override public boolean keyTyped(char character) {
+            loginUi.typed(character);
+            return true;
         }
     }
 

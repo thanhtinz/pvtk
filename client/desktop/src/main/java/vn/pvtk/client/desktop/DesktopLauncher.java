@@ -28,7 +28,7 @@ public final class DesktopLauncher {
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Phong Vân (PVTK)");
-        config.setWindowedMode(960, 720);
+        config.setWindowedMode(480, 854); // portrait (phone aspect), matching the game
         config.useVsync(true);
         config.setForegroundFPS(60);
 

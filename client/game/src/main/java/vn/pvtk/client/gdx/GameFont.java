@@ -24,7 +24,8 @@ final class GameFont {
 
     /** Builds the HUD/world font, or the default bitmap font if no TTF is available. */
     static BitmapFont load(int size) {
-        FileHandle ttf = firstExisting("font/cjk.ttf", "font/game.ttf");
+        // Prefer the Vietnamese-complete UI font; the CJK pack is a fallback only.
+        FileHandle ttf = firstExisting("font/game.ttf", "font/cjk.ttf");
         if (ttf == null) {
             return new BitmapFont();
         }

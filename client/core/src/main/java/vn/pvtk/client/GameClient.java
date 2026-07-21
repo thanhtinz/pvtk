@@ -48,7 +48,14 @@ public final class GameClient implements ConnectionListener {
     }
 
     public void login(String username, String password, int serverLine) {
-        connection.send(new LoginRequest(username, password, serverLine).toPacket());
+        connection.send(new LoginRequest(username, password, serverLine,
+                LoginRequest.MODE_LOGIN).toPacket());
+    }
+
+    /** Registers a brand-new account and, on success, logs straight into it. */
+    public void register(String username, String password, int serverLine) {
+        connection.send(new LoginRequest(username, password, serverLine,
+                LoginRequest.MODE_REGISTER).toPacket());
     }
 
     public void move(int x, int y, int dir) {

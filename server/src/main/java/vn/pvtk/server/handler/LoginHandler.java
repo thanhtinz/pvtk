@@ -39,12 +39,30 @@ public final class LoginHandler implements PacketHandler {
             session.send(new LoginResponse(false, "Tên tài khoản trống", null).toPacket());
             return;
         }
-        // Validate against the shared account store (auto-creates a fresh account).
-        vn.pvtk.server.account.Account account =
-                ctx.accounts().authenticateOrCreate(req.username(), req.password());
-        if (account == null) {
-            session.send(new LoginResponse(false, "Sai mật khẩu hoặc tài khoản bị khóa", null).toPacket());
-            return;
+        vn.pvtk.server.account.Account account;
+        if (req.mode() == LoginRequest.MODE_REGISTER) {
+            // Proper registration: fail if the name is taken or the password is too short.
+            if (ctx.accounts().get(req.username()) != null) {
+                session.send(new LoginResponse(false, "Tài khoản đã tồn tại", null).toPacket());
+                return;
+            }
+            account = ctx.accounts().register(req.username(), req.password());
+            if (account == null) {
+                session.send(new LoginResponse(false,
+                        "Đăng ký thất bại (mật khẩu tối thiểu 4 ký tự)", null).toPacket());
+                return;
+            }
+        } else {
+            // Log in to an existing account only — you must register first.
+            if (ctx.accounts().get(req.username()) == null) {
+                session.send(new LoginResponse(false, "Tài khoản chưa tồn tại, hãy Đăng ký", null).toPacket());
+                return;
+            }
+            if (!ctx.accounts().authenticate(req.username(), req.password())) {
+                session.send(new LoginResponse(false, "Sai mật khẩu hoặc tài khoản bị khóa", null).toPacket());
+                return;
+            }
+            account = ctx.accounts().get(req.username());
         }
         account.lastLogin = System.currentTimeMillis();
         session.account(account);

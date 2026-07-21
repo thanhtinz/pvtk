@@ -62,17 +62,29 @@ public final class Messages {
     // Login (opcode LOGIN = 10003)
     // ------------------------------------------------------------------
 
-    public record LoginRequest(String username, String password, int serverLine) {
+    /** {@code mode}: 0 = log in to an existing account, 1 = register a new one. */
+    public record LoginRequest(String username, String password, int serverLine, int mode) {
+        public static final int MODE_LOGIN = 0;
+        public static final int MODE_REGISTER = 1;
+
+        public LoginRequest(String username, String password, int serverLine) {
+            this(username, password, serverLine, MODE_LOGIN);
+        }
+
         public Packet toPacket() {
             Packet p = new Packet(Opcodes.LOGIN);
             p.putByte(0); // sub-type 0 = login request
-            p.putString(username).putString(password).putShort(serverLine);
+            p.putString(username).putString(password).putShort(serverLine).putByte(mode);
             return p;
         }
 
         public static LoginRequest from(Packet p) {
             p.getByte(); // sub-type
-            return new LoginRequest(p.getString(), p.getString(), p.getUShort());
+            String u = p.getString();
+            String pw = p.getString();
+            int line = p.getUShort();
+            int mode = p.remaining() > 0 ? p.getUByte() : MODE_LOGIN; // back-compat
+            return new LoginRequest(u, pw, line, mode);
         }
     }
 
