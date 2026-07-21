@@ -26,7 +26,9 @@ public final class LoginUi {
     private final StringBuilder user = new StringBuilder();
     private final StringBuilder pass = new StringBuilder();
     private int focus = 0; // 0 = account, 1 = password
+    private int server = 0; // selected server index
     private String status = "";
+    private static final int SERVER_COUNT = 1;
 
     private Texture bg;
     private Texture logo;
@@ -97,36 +99,29 @@ public final class LoginUi {
             rects.put("menu" + i, new float[]{x, y, sz, sz});
         }
 
-        // Centre form (portrait): labels sit above each input, generous spacing.
+        // Centre form (portrait): labels above each box, generous spacing.
         float fw = Math.min(vw * 0.76f, 330);
         float fx = (vw - fw) / 2f;
-        float y0 = vh * 0.52f;
-        float rowH = 92; // label + box + gap
-        field(batch, font, "f_user", 0, "Tài khoản", user, false, fx, y0, fw);
-        field(batch, font, "f_pass", 1, "Mật khẩu", pass, true, fx, y0 + rowH, fw);
+        float y0 = vh * 0.50f;
+        float rowH = 88; // label + box + gap
+        field(batch, font, "f_user", 0, "Tài khoản", user.toString(), false, fx, y0, fw);
+        field(batch, font, "f_pass", 1, "Mật khẩu", pass.toString(), true, fx, y0 + rowH, fw);
+        // Server picker — same input-box style, shows the chosen server.
+        boxRow(batch, font, "server", "Máy chủ", "Server " + (server + 1) + "  ▸", fx, y0 + 2 * rowH, fw);
 
-        // Status + server picker row.
-        float rowY = y0 + 2 * rowH;
+        // Status line.
+        float statusY = y0 + 3 * rowH - 8;
         if (!status.isEmpty()) {
             font.setColor(Color.valueOf("ff6a6a"));
-            font.draw(batch, status, fx + 2, top(rowY + 20, 0));
+            font.draw(batch, status, fx + 4, top(statusY, 0));
         }
-        float srvW = fw * 0.46f;
-        float srvH = 34;
-        float srvX = fx + fw - srvW;
-        TextureRegion srvBg = buttons != null ? buttons.region(9) : null; // clean plate
-        if (srvBg != null) {
-            batch.draw(srvBg, srvX, top(rowY, srvH), srvW, srvH);
-        }
-        centeredText(batch, font, "Chọn Server", Color.valueOf("eaf4ff"), srvX + srvW / 2f, rowY + 22);
-        rects.put("server", new float[]{srvX, rowY, srvW, srvH});
 
-        // Register + Login buttons, side by side (art buttons with baked text).
-        float bwd = (fw - 16) / 2f;
+        // Single Đăng nhập button, centred.
+        float bwd = Math.min(fw, 220);
         float bht = bwd * 0.30f;
-        float by = rowY + srvH + 22;
-        drawButton(batch, "register", 3, fx, by, bwd, bht);
-        drawButton(batch, "login", 4, fx + bwd + 16, by, bwd, bht);
+        float bx = (vw - bwd) / 2f;
+        float by = statusY + 20;
+        drawButton(batch, "login", 4, bx, by, bwd, bht);
     }
 
     private void drawButton(SpriteBatch batch, String key, int frame, float x, float y, float w, float h) {
@@ -137,22 +132,28 @@ public final class LoginUi {
         rects.put(key, new float[]{x, y, w, h});
     }
 
-    /** Draws a labelled input with the label above the box. */
+    /** Draws a labelled input box (label above, text padded inside the frame). */
     private void field(SpriteBatch batch, BitmapFont font, String key, int idx, String label,
-                       StringBuilder val, boolean secret, float x, float y, float w) {
+                       String value, boolean secret, float x, float y, float w) {
+        String shown = secret ? "•".repeat(value.length()) : value;
+        if (focus == idx) {
+            shown += "|";
+        }
+        boxRow(batch, font, key, label, shown.isEmpty() ? "" : shown, x, y, w);
+    }
+
+    /** A labelled box: label sits clear above the frame; content is padded inside. */
+    private void boxRow(SpriteBatch batch, BitmapFont font, String key, String label,
+                        String content, float x, float y, float w) {
         float h = 44;
         font.setColor(Color.valueOf("f5e6a8"));
-        font.draw(batch, label, x + 2, top(y - 10, 0));
+        font.draw(batch, label, x + 6, top(y - 12, 0));
         TextureRegion r = fields != null ? fields.region(33) : null;
         if (r != null) {
             batch.draw(r, x, top(y, h), w, h);
         }
-        String shown = secret ? "•".repeat(val.length()) : val.toString();
-        if (focus == idx) {
-            shown += "|";
-        }
-        font.setColor(shown.isEmpty() ? Color.GRAY : Color.WHITE);
-        font.draw(batch, shown.isEmpty() ? "" : shown, x + 12, top(y + h / 2f - 8, 0));
+        font.setColor(Color.WHITE);
+        font.draw(batch, content, x + 20, top(y + h / 2f - 8, 0));
         rects.put(key, new float[]{x, y, w, h});
     }
 
@@ -177,13 +178,11 @@ public final class LoginUi {
         switch (hit) {
             case "f_user" -> focus = 0;
             case "f_pass" -> focus = 1;
+            case "server" -> server = (server + 1) % SERVER_COUNT;
             case "login" -> {
                 return check() ? Action.LOGIN : Action.NONE;
             }
-            case "register" -> {
-                return check() ? Action.REGISTER : Action.NONE;
-            }
-            default -> { } // menu buttons / server picker: reserved
+            default -> { } // right-hand menu buttons: reserved for later screens
         }
         return Action.NONE;
     }
