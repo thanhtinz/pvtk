@@ -92,20 +92,20 @@ public final class LoginUi {
         }
 
         switch (stage) {
-            case MENU -> drawMenu(batch);
+            case MENU -> drawMenu(batch, font);
             case LOGIN -> { drawIcons(batch, font); drawForm(batch, font, false); }
             case REGISTER -> { drawIcons(batch, font); drawForm(batch, font, true); }
         }
     }
 
     /** Entry menu: two centred buttons, Đăng nhập over Đăng ký. */
-    private void drawMenu(SpriteBatch batch) {
+    private void drawMenu(SpriteBatch batch, BitmapFont font) {
         float bwd = Math.min(vw * 0.56f, 240);
-        float bht = bwd * 0.30f;
+        float bht = bwd * 0.28f;
         float bx = (vw - bwd) / 2f;
         float y = vh * 0.54f;
-        drawButton(batch, "menu_login", 4, bx, y, bwd, bht);
-        drawButton(batch, "menu_register", 3, bx, y + bht + 20, bwd, bht);
+        drawButton(batch, font, "menu_login", "Đăng nhập", bx, y, bwd, bht);
+        drawButton(batch, font, "menu_register", "Đăng ký", bx, y + bht + 20, bwd, bht);
     }
 
     /** Right-hand column of real game icons (Back returns to the menu). */
@@ -147,17 +147,21 @@ public final class LoginUi {
         }
 
         float bwd = Math.min(fw, 220);
-        float bht = bwd * 0.30f;
+        float bht = bwd * 0.28f;
         float bx = (vw - bwd) / 2f;
         float by = statusY + 20;
-        drawButton(batch, register ? "register" : "login", register ? 3 : 4, bx, by, bwd, bht);
+        drawButton(batch, font, register ? "register" : "login",
+                register ? "Đăng ký" : "Đăng nhập", bx, by, bwd, bht);
     }
 
-    private void drawButton(SpriteBatch batch, String key, int frame, float x, float y, float w, float h) {
-        TextureRegion r = buttons != null ? buttons.region(frame) : null;
-        if (r != null) {
-            batch.draw(r, x, top(y, h), w, h);
+    /** A button: a stretchable art plate with a crisp font label (avoids upscaling tiny text art). */
+    private void drawButton(SpriteBatch batch, BitmapFont font, String key, String label,
+                            float x, float y, float w, float h) {
+        TextureRegion plate = buttons != null ? buttons.region(9) : null; // plain plate frame
+        if (plate != null) {
+            batch.draw(plate, x, top(y, h), w, h);
         }
+        centeredText(batch, font, label, Color.valueOf("fff3d6"), x + w / 2f, y + h * 0.62f);
         rects.put(key, new float[]{x, y, w, h});
     }
 
@@ -283,7 +287,12 @@ public final class LoginUi {
     private static Texture tryTexture(String rel) {
         try {
             FileHandle f = Assets.resolve(rel);
-            return f.exists() ? new Texture(f) : null;
+            if (!f.exists()) {
+                return null;
+            }
+            Texture t = new Texture(f);
+            t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            return t;
         } catch (Exception e) {
             return null;
         }
@@ -307,6 +316,7 @@ public final class LoginUi {
                     return null;
                 }
                 Texture tex = new Texture(png);
+                tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
                 SpriteSheet ss = SpriteSheet.parse(fr.readBytes());
                 if (!ss.fitsWithin(tex.getWidth(), tex.getHeight())) {
                     tex.dispose();
